@@ -6,6 +6,7 @@ import type {
 } from "express";
 import { AppError } from "../shared/errors/app-error.js";
 import { env } from "../config/env.js";
+import { logger } from "../config/logger.js";
 
 export const errorHandlerMiddleware: ErrorRequestHandler = (
   error: unknown,
@@ -24,7 +25,7 @@ export const errorHandlerMiddleware: ErrorRequestHandler = (
     return;
   }
 
-  console.error(error);
+  logger.error({ err: error }, "Unexpected error");
 
   res.status(500).json({
     success: false,
