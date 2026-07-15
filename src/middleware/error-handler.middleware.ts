@@ -1,0 +1,37 @@
+import type {
+  ErrorRequestHandler,
+  Request,
+  Response,
+  NextFunction,
+} from "express";
+import { AppError } from "../shared/errors/app-error.js";
+import { env } from "../config/env.js";
+
+export const errorHandlerMiddleware: ErrorRequestHandler = (
+  error: unknown,
+  _req: Request,
+  res: Response,
+  _next: NextFunction,
+) => {
+  if (error instanceof AppError) {
+    res.status(error.statusCode).json({
+      success: false,
+      message: error.message,
+      ...(env.NODE_ENV === "development" && {
+        stack: error.stack,
+      }),
+    });
+    return;
+  }
+
+  console.error(error);
+
+  res.status(500).json({
+    success: false,
+    message: "Internal server error",
+    ...(env.NODE_ENV === "development" &&
+      error instanceof Error && {
+        stack: error.stack,
+      }),
+  });
+};
