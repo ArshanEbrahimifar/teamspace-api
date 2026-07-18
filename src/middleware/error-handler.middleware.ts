@@ -7,6 +7,7 @@ import type {
 import { AppError } from "../shared/errors/app-error.js";
 import { env } from "../config/env.js";
 import { logger } from "../config/logger.js";
+import { Prisma } from "../generated/prisma/client.js";
 
 export const errorHandlerMiddleware: ErrorRequestHandler = (
   error: unknown,
@@ -23,6 +24,19 @@ export const errorHandlerMiddleware: ErrorRequestHandler = (
       }),
     });
     return;
+  }
+
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") {
+      res.status(409).json({
+        success: false,
+        message: "A record with this value already exists",
+        ...(env.NODE_ENV === "development" && {
+          stack: error.stack,
+        }),
+      });
+      return;
+    }
   }
 
   logger.error({ err: error }, "Unexpected error");
