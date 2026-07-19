@@ -43,6 +43,10 @@ export const verifyAccessToken = async (
   };
 };
 
+export const hashRefreshToken = (token: string): string => {
+  return createHash("sha256").update(token).digest("hex");
+};
+
 type RefreshTokenData = {
   token: string;
   tokenHash: string;
@@ -52,7 +56,7 @@ type RefreshTokenData = {
 export const createRefreshToken = (): RefreshTokenData => {
   const token = randomBytes(64).toString("base64url");
 
-  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const tokenHash = hashRefreshToken(token);
 
   const expiresAt = new Date(
     Date.now() + env.REFRESH_TOKEN_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000,
