@@ -10,6 +10,7 @@ import {
   refreshAuthTokens,
   registerUser,
 } from "./auth.service.js";
+import { AppError } from "../../shared/errors/app-error.js";
 
 export const register: RequestHandler = async (_req, res) => {
   const { body } = res.locals.validatedData as { body: RegisterInput };
@@ -55,4 +56,18 @@ export const logout: RequestHandler = async (_req, res) => {
   await logoutUser(body);
 
   res.status(204).send();
+};
+
+export const getMe: RequestHandler = (req, res) => {
+  if (!req.auth) {
+    throw new AppError("Authentication is required", 401);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Current user retrieved successfully",
+    data: {
+      user: req.auth.user,
+    },
+  });
 };
