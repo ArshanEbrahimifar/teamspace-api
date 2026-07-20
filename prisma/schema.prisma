@@ -8,6 +8,14 @@ datasource db {
 }
 
 
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+
 model User {
   id           String        @id @default(uuid())
   email        String        @unique
@@ -19,6 +27,7 @@ model User {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   authSessions AuthSession[]
+  workspaceMemberships WorkspaceMember[]
   @@map("users")
 }
 model AuthSession {
@@ -38,4 +47,35 @@ model AuthSession {
   @@index([userId])
   @@index([expiresAt])
   @@map("auth_sessions")
+}
+
+model Workspace{
+  id     String     @id @default(uuid())
+  name   String    
+  slug   String     @unique
+  description  String?
+  logoUrl      String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+  members      WorkspaceMember[]
+
+  @@index([deletedAt])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String        @id @default(uuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(MEMBER)
+  joinedAt    DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@index([workspaceId, role])
+  @@map("workspace_members")
 }
