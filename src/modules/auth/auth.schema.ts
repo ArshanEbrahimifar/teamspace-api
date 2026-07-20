@@ -41,3 +41,13 @@ export const refreshTokenSchema = z.object({
     .strict(),
 });
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>["body"];
+
+export const sessionIdParamsSchema = z.object({
+  params: z
+    .object({
+      sessionId: z.uuid("Please provide a valid session ID"),
+    })
+    .strict(),
+});
+
+export type SessionIdParams = z.infer<typeof sessionIdParamsSchema>["params"];

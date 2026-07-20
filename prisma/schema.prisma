@@ -25,8 +25,11 @@ model AuthSession {
   id               String    @id @default(uuid())
   refreshTokenHash String    @unique
   userId           String
+  userAgent        String?
+  ipAddress        String?
   expiresAt        DateTime
   revokedAt        DateTime?
+  lastRefreshedAt    DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 

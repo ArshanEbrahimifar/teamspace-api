@@ -7,3 +7,8 @@ export type AuthenticatedUser = {
   lastLoginAt: Date | null;
   createdAt: Date;
 };
+
+export type SessionMetadata = {
+  userAgent?: string;
+  ipAddress?: string;
+};

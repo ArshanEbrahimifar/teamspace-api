@@ -9,9 +9,13 @@ const accessTokenSecret = new TextEncoder().encode(env.JWT_ACCESS_SECRET);
 
 const accessTokenAlgorithm = "HS256";
 
-export const signAccessToken = async (userId: string): Promise<string> => {
+export const signAccessToken = async (
+  userId: string,
+  sessionId: string,
+): Promise<string> => {
   return new SignJWT({
     tokenType: "access",
+    sessionId,
   })
     .setProtectedHeader({
       alg: accessTokenAlgorithm,
@@ -27,19 +31,24 @@ export const signAccessToken = async (userId: string): Promise<string> => {
 
 export const verifyAccessToken = async (
   token: string,
-): Promise<{ userId: string }> => {
+): Promise<{ userId: string; sessionId: string }> => {
   const { payload } = await jwtVerify(token, accessTokenSecret, {
     algorithms: [accessTokenAlgorithm],
     issuer: env.JWT_ISSUER,
     audience: env.JWT_AUDIENCE,
   });
 
-  if (payload.tokenType !== "access" || typeof payload.sub !== "string") {
+  if (
+    payload.tokenType !== "access" ||
+    typeof payload.sessionId !== "string" ||
+    typeof payload.sub !== "string"
+  ) {
     throw new Error("Invalid access token payload");
   }
 
   return {
     userId: payload.sub,
+    sessionId: payload.sessionId,
   };
 };
 

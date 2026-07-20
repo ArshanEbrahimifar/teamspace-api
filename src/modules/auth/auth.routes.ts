@@ -4,8 +4,18 @@ import {
   loginSchema,
   refreshTokenSchema,
   registerSchema,
+  sessionIdParamsSchema,
 } from "./auth.schema.js";
-import { getMe, login, logout, refresh, register } from "./auth.controller.js";
+import {
+  getMe,
+  listSessions,
+  login,
+  logout,
+  logoutAllSessions,
+  refresh,
+  register,
+  revokeSession,
+} from "./auth.controller.js";
 import { authenticate } from "../../middleware/authenticate.middleware.js";
 
 export const authRouter = Router();
@@ -19,3 +29,14 @@ authRouter.post("/refresh", validateRequest(refreshTokenSchema), refresh);
 authRouter.post("/logout", validateRequest(refreshTokenSchema), logout);
 
 authRouter.get("/me", authenticate, getMe);
+
+authRouter.get("/sessions", authenticate, listSessions);
+
+authRouter.delete(
+  "/sessions/:sessionId",
+  authenticate,
+  validateRequest(sessionIdParamsSchema),
+  revokeSession,
+);
+
+authRouter.delete("/sessions", authenticate, logoutAllSessions);

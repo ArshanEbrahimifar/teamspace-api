@@ -6,7 +6,7 @@ import { verifyAccessToken } from "../shared/utils/token.js";
 
 const validateAccessToken = async (
   token: string,
-): Promise<{ userId: string }> => {
+): Promise<{ userId: string; sessionId: string }> => {
   try {
     return await verifyAccessToken(token);
   } catch {
@@ -29,34 +29,48 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
 
   const accessToken = parts[1];
 
-  const { userId } = await validateAccessToken(accessToken);
+  const { userId, sessionId } = await validateAccessToken(accessToken);
 
-  const user = await prisma.user.findUnique({
+  const session = await prisma.authSession.findUnique({
     where: {
-      id: userId,
+      id: sessionId,
     },
 
     select: {
-      id: true,
-      name: true,
-      email: true,
-      avatarUrl: true,
-      isActive: true,
-      lastLoginAt: true,
-      createdAt: true,
+      userId: true,
+      expiresAt: true,
+      revokedAt: true,
+
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+          isActive: true,
+          lastLoginAt: true,
+          createdAt: true,
+        },
+      },
     },
   });
 
-  if (!user) {
+  if (
+    !session ||
+    session.userId !== userId ||
+    session.revokedAt ||
+    session.expiresAt <= new Date()
+  ) {
     throw new AppError("Invalid or expired access token", 401);
   }
 
-  if (!user.isActive) {
+  if (!session.user.isActive) {
     throw new AppError("Your account is inactive", 403);
   }
 
   req.auth = {
-    user,
+    user: session.user,
+    sessionId,
   };
 
   next();
