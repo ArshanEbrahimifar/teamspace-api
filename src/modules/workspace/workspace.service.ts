@@ -1,4 +1,5 @@
 import { prisma } from "../../config/database.js";
+import { AppError } from "../../shared/errors/app-error.js";
 import { generateWorkspaceSlug } from "../../shared/utils/slug.js";
 
 import type { CreateWorkspaceInput } from "./workspace.schema.js";
@@ -104,4 +105,57 @@ export const getUserWorkspaces = async (userId: string) => {
       joinedAt: membership.joinedAt,
     },
   }));
+};
+export const getWorkspaceById = async (workspaceId: string, userId: string) => {
+  const membership = await prisma.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: {
+        workspaceId,
+        userId,
+      },
+    },
+    select: {
+      id: true,
+      role: true,
+      joinedAt: true,
+      workspace: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          logoUrl: true,
+          createdAt: true,
+          updatedAt: true,
+          deletedAt: true,
+          _count: {
+            select: {
+              members: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!membership || membership.workspace.deletedAt) {
+    throw new AppError("Workspace not found", 404);
+  }
+  return {
+    workspace: {
+      id: membership.workspace.id,
+      name: membership.workspace.name,
+      slug: membership.workspace.slug,
+      description: membership.workspace.description,
+      logoUrl: membership.workspace.logoUrl,
+      createdAt: membership.workspace.createdAt,
+      updatedAt: membership.workspace.updatedAt,
+      memberCount: membership.workspace._count.members,
+    },
+
+    membership: {
+      id: membership.id,
+      role: membership.role,
+      joinedAt: membership.joinedAt,
+    },
+  };
 };

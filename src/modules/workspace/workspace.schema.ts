@@ -20,3 +20,15 @@ export const createWorkspaceSchema = z.object({
 export type CreateWorkspaceInput = z.infer<
   typeof createWorkspaceSchema
 >["body"];
+
+export const workspaceIdParamsSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+    })
+    .strict(),
+});
+
+export type WorkspaceIdParams = z.infer<
+  typeof workspaceIdParamsSchema
+>["params"];
