@@ -2,7 +2,10 @@ import { prisma } from "../../config/database.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { generateWorkspaceSlug } from "../../shared/utils/slug.js";
 
-import type { CreateWorkspaceInput } from "./workspace.schema.js";
+import type {
+  CreateWorkspaceInput,
+  UpdateWorkspaceInput,
+} from "./workspace.schema.js";
 
 export const createWorkspace = async (
   input: CreateWorkspaceInput,
@@ -151,6 +154,89 @@ export const getWorkspaceById = async (workspaceId: string, userId: string) => {
       updatedAt: membership.workspace.updatedAt,
       memberCount: membership.workspace._count.members,
     },
+
+    membership: {
+      id: membership.id,
+      role: membership.role,
+      joinedAt: membership.joinedAt,
+    },
+  };
+};
+export const updateWorkspace = async (
+  workspaceId: string,
+  userId: string,
+  input: UpdateWorkspaceInput,
+) => {
+  const membership = await prisma.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: {
+        workspaceId,
+        userId,
+      },
+    },
+
+    select: {
+      id: true,
+      role: true,
+      joinedAt: true,
+
+      workspace: {
+        select: {
+          deletedAt: true,
+        },
+      },
+    },
+  });
+
+  if (!membership || membership.workspace.deletedAt) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  if (membership.role !== "OWNER" && membership.role !== "ADMIN") {
+    throw new AppError(
+      "You do not have permission to update this workspace",
+      403,
+    );
+  }
+
+  const workspace = await prisma.workspace.update({
+    where: {
+      id: workspaceId,
+    },
+
+    data: {
+      ...(input.name !== undefined
+        ? {
+            name: input.name,
+          }
+        : {}),
+
+      ...(input.description !== undefined
+        ? {
+            description: input.description,
+          }
+        : {}),
+
+      ...(input.logoUrl !== undefined
+        ? {
+            logoUrl: input.logoUrl,
+          }
+        : {}),
+    },
+
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      logoUrl: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return {
+    workspace,
 
     membership: {
       id: membership.id,

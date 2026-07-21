@@ -2,12 +2,15 @@ import type { RequestHandler } from "express";
 import { AppError } from "../../shared/errors/app-error.js";
 import type {
   CreateWorkspaceInput,
+  UpdateWorkspaceInput,
+  UpdateWorkspaceParams,
   WorkspaceIdParams,
 } from "./workspace.schema.js";
 import {
   createWorkspace,
   getUserWorkspaces,
   getWorkspaceById,
+  updateWorkspace,
 } from "./workspace.service.js";
 
 export const createWorkspaceHandler: RequestHandler = async (req, res) => {
@@ -48,6 +51,27 @@ export const getWorkspaceHandler: RequestHandler = async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Workspace retrieved successfully",
+    data: result,
+  });
+};
+export const updateWorkspaceHandler: RequestHandler = async (req, res) => {
+  if (!req.auth) {
+    throw new AppError("Authentication is required", 401);
+  }
+  const { params, body } = res.locals.validatedData as {
+    params: UpdateWorkspaceParams;
+    body: UpdateWorkspaceInput;
+  };
+
+  const result = await updateWorkspace(
+    params.workspaceId,
+    req.auth.user.id,
+    body,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Workspace updated successfully",
     data: result,
   });
 };
