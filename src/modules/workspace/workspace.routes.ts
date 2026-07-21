@@ -12,6 +12,7 @@ import {
   listWorkspacesHandler,
   updateWorkspaceHandler,
 } from "./workspace.controller.js";
+import { authorizeWorkspaceRoles } from "../../middleware/authorize-workspace.middleware.js";
 
 export const workspaceRouter = Router();
 
@@ -21,6 +22,7 @@ workspaceRouter.get(
   "/:workspaceId",
   authenticate,
   validateRequest(workspaceIdParamsSchema),
+  authorizeWorkspaceRoles("ADMIN", "OWNER", "MEMBER"),
   getWorkspaceHandler,
 );
 
@@ -35,5 +37,6 @@ workspaceRouter.patch(
   "/:workspaceId",
   authenticate,
   validateRequest(updateWorkspaceSchema),
+  authorizeWorkspaceRoles("ADMIN", "OWNER"),
   updateWorkspaceHandler,
 );

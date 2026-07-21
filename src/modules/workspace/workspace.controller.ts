@@ -3,13 +3,10 @@ import { AppError } from "../../shared/errors/app-error.js";
 import type {
   CreateWorkspaceInput,
   UpdateWorkspaceInput,
-  UpdateWorkspaceParams,
-  WorkspaceIdParams,
 } from "./workspace.schema.js";
 import {
   createWorkspace,
   getUserWorkspaces,
-  getWorkspaceById,
   updateWorkspace,
 } from "./workspace.service.js";
 
@@ -45,33 +42,45 @@ export const getWorkspaceHandler: RequestHandler = async (req, res) => {
   if (!req.auth) {
     throw new AppError("Authentication is required", 401);
   }
-  const { params } = res.locals.validatedData as { params: WorkspaceIdParams };
-  const result = await getWorkspaceById(params.workspaceId, req.auth.user.id);
-
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
   res.status(200).json({
     success: true,
     message: "Workspace retrieved successfully",
-    data: result,
+    data: req.workspaceContext,
   });
 };
 export const updateWorkspaceHandler: RequestHandler = async (req, res) => {
-  if (!req.auth) {
-    throw new AppError("Authentication is required", 401);
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
   }
-  const { params, body } = res.locals.validatedData as {
-    params: UpdateWorkspaceParams;
+
+  const { body } = res.locals.validatedData as {
     body: UpdateWorkspaceInput;
   };
 
-  const result = await updateWorkspace(
-    params.workspaceId,
-    req.auth.user.id,
+  const updatedWorkspace = await updateWorkspace(
+    req.workspaceContext.workspace.id,
     body,
   );
 
   res.status(200).json({
     success: true,
     message: "Workspace updated successfully",
-    data: result,
+    data: {
+      workspace: {
+        id: updatedWorkspace.id,
+        name: updatedWorkspace.name,
+        slug: updatedWorkspace.slug,
+        description: updatedWorkspace.description,
+        logoUrl: updatedWorkspace.logoUrl,
+        createdAt: updatedWorkspace.createdAt,
+        updatedAt: updatedWorkspace.updatedAt,
+        memberCount: updatedWorkspace._count.members,
+      },
+
+      membership: req.workspaceContext.membership,
+    },
   });
 };
