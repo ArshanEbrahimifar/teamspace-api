@@ -167,3 +167,44 @@ export const softDeleteWorkspace = async (
     },
   });
 };
+export const getWorkspaceMembers = async (workspaceId: string) => {
+  const members = await prisma.workspaceMember.findMany({
+    where: {
+      workspaceId,
+    },
+
+    orderBy: {
+      joinedAt: "asc",
+    },
+
+    select: {
+      id: true,
+      role: true,
+      joinedAt: true,
+
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  });
+
+  return members.map((member) => ({
+    membership: {
+      id: member.id,
+      role: member.role,
+      joinedAt: member.joinedAt,
+    },
+
+    user: {
+      id: member.user.id,
+      name: member.user.name,
+      email: member.user.email,
+      avatarUrl: member.user.avatarUrl,
+    },
+  }));
+};

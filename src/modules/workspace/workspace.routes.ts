@@ -10,6 +10,7 @@ import {
   createWorkspaceHandler,
   deleteWorkspaceHandler,
   getWorkspaceHandler,
+  listWorkspaceMembersHandler,
   listWorkspacesHandler,
   updateWorkspaceHandler,
 } from "./workspace.controller.js";
@@ -18,6 +19,14 @@ import { authorizeWorkspaceRoles } from "../../middleware/authorize-workspace.mi
 export const workspaceRouter = Router();
 
 workspaceRouter.get("/", authenticate, listWorkspacesHandler);
+
+workspaceRouter.get(
+  "/:workspaceId/members",
+  authenticate,
+  validateRequest(workspaceIdParamsSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  listWorkspaceMembersHandler,
+);
 
 workspaceRouter.get(
   "/:workspaceId",

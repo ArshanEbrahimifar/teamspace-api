@@ -7,6 +7,7 @@ import type {
 import {
   createWorkspace,
   getUserWorkspaces,
+  getWorkspaceMembers,
   softDeleteWorkspace,
   updateWorkspace,
 } from "./workspace.service.js";
@@ -92,4 +93,25 @@ export const deleteWorkspaceHandler: RequestHandler = async (req, res) => {
   await softDeleteWorkspace(req.workspaceContext.workspace.id);
 
   res.status(204).send();
+};
+export const listWorkspaceMembersHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const members = await getWorkspaceMembers(req.workspaceContext.workspace.id);
+
+  res.status(200).json({
+    success: true,
+    message: "Workspace members retrieved successfully",
+    data: {
+      workspace: {
+        id: req.workspaceContext.workspace.id,
+        name: req.workspaceContext.workspace.name,
+        memberCount: req.workspaceContext.workspace.memberCount,
+      },
+
+      members,
+    },
+  });
 };
