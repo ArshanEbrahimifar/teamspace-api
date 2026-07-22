@@ -1,9 +1,11 @@
 import { prisma } from "../../config/database.js";
+import { AppError } from "../../shared/errors/app-error.js";
 import { generateWorkspaceSlug } from "../../shared/utils/slug.js";
 
 import type {
   CreateWorkspaceInput,
   UpdateWorkspaceInput,
+  UpdateWorkspaceMemberRoleInput,
 } from "./workspace.schema.js";
 
 export const createWorkspace = async (
@@ -207,4 +209,79 @@ export const getWorkspaceMembers = async (workspaceId: string) => {
       avatarUrl: member.user.avatarUrl,
     },
   }));
+};
+export const updateWorkspaceMemberRole = async (
+  workspaceId: string,
+  memberId: string,
+  input: UpdateWorkspaceMemberRoleInput,
+) => {
+  const targetMember = await prisma.workspaceMember.findFirst({
+    where: {
+      id: memberId,
+      workspaceId,
+    },
+
+    select: {
+      id: true,
+      role: true,
+      joinedAt: true,
+
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  });
+
+  if (!targetMember) {
+    throw new AppError("Workspace member not found", 404);
+  }
+
+  if (targetMember.role === "OWNER") {
+    throw new AppError("Workspace owner role cannot be changed", 409);
+  }
+
+  const updatedMember = await prisma.workspaceMember.update({
+    where: {
+      id: targetMember.id,
+    },
+
+    data: {
+      role: input.role,
+    },
+
+    select: {
+      id: true,
+      role: true,
+      joinedAt: true,
+
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  });
+
+  return {
+    membership: {
+      id: updatedMember.id,
+      role: updatedMember.role,
+      joinedAt: updatedMember.joinedAt,
+    },
+
+    user: {
+      id: updatedMember.user.id,
+      name: updatedMember.user.name,
+      email: updatedMember.user.email,
+      avatarUrl: updatedMember.user.avatarUrl,
+    },
+  };
 };

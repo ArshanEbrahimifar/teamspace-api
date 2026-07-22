@@ -77,3 +77,29 @@ export type UpdateWorkspaceInput = z.infer<
 export type UpdateWorkspaceParams = z.infer<
   typeof updateWorkspaceSchema
 >["params"];
+
+export const updateWorkspaceMemberRoleSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+
+      memberId: z.uuid("Please provide a valid member ID"),
+    })
+    .strict(),
+
+  body: z
+    .object({
+      role: z.enum(["ADMIN", "MEMBER"], {
+        error: "Role must be either ADMIN or MEMBER",
+      }),
+    })
+    .strict(),
+});
+
+export type UpdateWorkspaceMemberRoleParams = z.infer<
+  typeof updateWorkspaceMemberRoleSchema
+>["params"];
+
+export type UpdateWorkspaceMemberRoleInput = z.infer<
+  typeof updateWorkspaceMemberRoleSchema
+>["body"];

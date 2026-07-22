@@ -3,6 +3,8 @@ import { AppError } from "../../shared/errors/app-error.js";
 import type {
   CreateWorkspaceInput,
   UpdateWorkspaceInput,
+  UpdateWorkspaceMemberRoleInput,
+  UpdateWorkspaceMemberRoleParams,
 } from "./workspace.schema.js";
 import {
   createWorkspace,
@@ -10,6 +12,7 @@ import {
   getWorkspaceMembers,
   softDeleteWorkspace,
   updateWorkspace,
+  updateWorkspaceMemberRole,
 } from "./workspace.service.js";
 
 export const createWorkspaceHandler: RequestHandler = async (req, res) => {
@@ -112,6 +115,33 @@ export const listWorkspaceMembersHandler: RequestHandler = async (req, res) => {
       },
 
       members,
+    },
+  });
+};
+export const updateWorkspaceMemberRoleHandler: RequestHandler = async (
+  req,
+  res,
+) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params, body } = res.locals.validatedData as {
+    params: UpdateWorkspaceMemberRoleParams;
+    body: UpdateWorkspaceMemberRoleInput;
+  };
+
+  const member = await updateWorkspaceMemberRole(
+    req.workspaceContext.workspace.id,
+    params.memberId,
+    body,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Workspace member role updated successfully",
+    data: {
+      member,
     },
   });
 };
