@@ -1,4 +1,5 @@
 import { prisma } from "../../config/database.js";
+import type { WorkspaceRole } from "../../generated/prisma/enums.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { generateWorkspaceSlug } from "../../shared/utils/slug.js";
 
@@ -284,4 +285,40 @@ export const updateWorkspaceMemberRole = async (
       avatarUrl: updatedMember.user.avatarUrl,
     },
   };
+};
+
+export const removeWorkspaceMember = async (
+  workspaceId: string,
+  memberId: string,
+  requesterRole: WorkspaceRole,
+): Promise<void> => {
+  const targetMember = await prisma.workspaceMember.findFirst({
+    where: {
+      id: memberId,
+      workspaceId,
+    },
+
+    select: {
+      id: true,
+      role: true,
+    },
+  });
+
+  if (!targetMember) {
+    throw new AppError("Workspace member not found", 404);
+  }
+
+  if (targetMember.role === "OWNER") {
+    throw new AppError("Workspace owner cannot be removed", 409);
+  }
+
+  if (requesterRole === "ADMIN" && targetMember.role !== "MEMBER") {
+    throw new AppError("Admins can only remove regular members", 403);
+  }
+
+  await prisma.workspaceMember.delete({
+    where: {
+      id: targetMember.id,
+    },
+  });
 };

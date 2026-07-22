@@ -3,6 +3,7 @@ import { authenticate } from "../../middleware/authenticate.middleware.js";
 import { validateRequest } from "../../middleware/validate-request.middleware.js";
 import {
   createWorkspaceSchema,
+  removeWorkspaceMemberSchema,
   updateWorkspaceMemberRoleSchema,
   updateWorkspaceSchema,
   workspaceIdParamsSchema,
@@ -13,6 +14,7 @@ import {
   getWorkspaceHandler,
   listWorkspaceMembersHandler,
   listWorkspacesHandler,
+  removeWorkspaceMemberHandler,
   updateWorkspaceHandler,
   updateWorkspaceMemberRoleHandler,
 } from "./workspace.controller.js";
@@ -36,6 +38,14 @@ workspaceRouter.patch(
   validateRequest(updateWorkspaceMemberRoleSchema),
   authorizeWorkspaceRoles("OWNER"),
   updateWorkspaceMemberRoleHandler,
+);
+
+workspaceRouter.delete(
+  "/:workspaceId/members/:memberId",
+  authenticate,
+  validateRequest(removeWorkspaceMemberSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN"),
+  removeWorkspaceMemberHandler,
 );
 
 workspaceRouter.get(

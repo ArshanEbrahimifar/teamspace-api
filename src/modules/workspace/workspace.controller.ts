@@ -2,6 +2,7 @@ import type { RequestHandler } from "express";
 import { AppError } from "../../shared/errors/app-error.js";
 import type {
   CreateWorkspaceInput,
+  RemoveWorkspaceMemberParams,
   UpdateWorkspaceInput,
   UpdateWorkspaceMemberRoleInput,
   UpdateWorkspaceMemberRoleParams,
@@ -10,6 +11,7 @@ import {
   createWorkspace,
   getUserWorkspaces,
   getWorkspaceMembers,
+  removeWorkspaceMember,
   softDeleteWorkspace,
   updateWorkspace,
   updateWorkspaceMemberRole,
@@ -144,4 +146,24 @@ export const updateWorkspaceMemberRoleHandler: RequestHandler = async (
       member,
     },
   });
+};
+export const removeWorkspaceMemberHandler: RequestHandler = async (
+  req,
+  res,
+) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params } = res.locals.validatedData as {
+    params: RemoveWorkspaceMemberParams;
+  };
+
+  await removeWorkspaceMember(
+    req.workspaceContext.workspace.id,
+    params.memberId,
+    req.workspaceContext.membership.role,
+  );
+
+  res.status(204).send();
 };

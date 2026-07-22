@@ -103,3 +103,17 @@ export type UpdateWorkspaceMemberRoleParams = z.infer<
 export type UpdateWorkspaceMemberRoleInput = z.infer<
   typeof updateWorkspaceMemberRoleSchema
 >["body"];
+
+export const removeWorkspaceMemberSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+
+      memberId: z.uuid("Please provide a valid member ID"),
+    })
+    .strict(),
+});
+
+export type RemoveWorkspaceMemberParams = z.infer<
+  typeof removeWorkspaceMemberSchema
+>["params"];
