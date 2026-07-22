@@ -8,6 +8,7 @@ import {
 } from "./workspace.schema.js";
 import {
   createWorkspaceHandler,
+  deleteWorkspaceHandler,
   getWorkspaceHandler,
   listWorkspacesHandler,
   updateWorkspaceHandler,
@@ -39,4 +40,11 @@ workspaceRouter.patch(
   validateRequest(updateWorkspaceSchema),
   authorizeWorkspaceRoles("ADMIN", "OWNER"),
   updateWorkspaceHandler,
+);
+workspaceRouter.delete(
+  "/:workspaceId",
+  authenticate,
+  validateRequest(workspaceIdParamsSchema),
+  authorizeWorkspaceRoles("OWNER"),
+  deleteWorkspaceHandler,
 );

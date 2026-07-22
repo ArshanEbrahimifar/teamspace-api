@@ -155,3 +155,15 @@ export const updateWorkspace = async (
     },
   });
 };
+export const softDeleteWorkspace = async (
+  workspaceId: string,
+): Promise<void> => {
+  await prisma.workspace.update({
+    where: {
+      id: workspaceId,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+};
