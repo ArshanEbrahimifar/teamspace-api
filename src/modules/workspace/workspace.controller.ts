@@ -2,6 +2,7 @@ import type { RequestHandler } from "express";
 import { AppError } from "../../shared/errors/app-error.js";
 import type {
   CreateWorkspaceInput,
+  CreateWorkspaceInvitationInput,
   RemoveWorkspaceMemberParams,
   UpdateWorkspaceInput,
   UpdateWorkspaceMemberRoleInput,
@@ -9,6 +10,7 @@ import type {
 } from "./workspace.schema.js";
 import {
   createWorkspace,
+  createWorkspaceInvitation,
   getUserWorkspaces,
   getWorkspaceMembers,
   removeWorkspaceMember,
@@ -16,6 +18,7 @@ import {
   updateWorkspace,
   updateWorkspaceMemberRole,
 } from "./workspace.service.js";
+import { env } from "../../config/env.js";
 
 export const createWorkspaceHandler: RequestHandler = async (req, res) => {
   if (!req.auth) {
@@ -166,4 +169,45 @@ export const removeWorkspaceMemberHandler: RequestHandler = async (
   );
 
   res.status(204).send();
+};
+export const createWorkspaceInvitationHandler: RequestHandler = async (
+  req,
+  res,
+) => {
+  if (!req.auth || !req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { body } = res.locals.validatedData as {
+    body: CreateWorkspaceInvitationInput;
+  };
+
+  const result = await createWorkspaceInvitation(
+    req.workspaceContext.workspace.id,
+    req.auth.user.id,
+    body,
+  );
+
+  res.status(result.wasReissued ? 200 : 201).json({
+    success: true,
+
+    message: result.wasReissued
+      ? "Workspace invitation reissued successfully"
+      : "Workspace invitation created successfully",
+
+    data: {
+      workspace: {
+        id: req.workspaceContext.workspace.id,
+        name: req.workspaceContext.workspace.name,
+      },
+
+      invitation: result.invitation,
+
+      ...(env.NODE_ENV === "development"
+        ? {
+            invitationToken: result.invitationToken,
+          }
+        : {}),
+    },
+  });
 };

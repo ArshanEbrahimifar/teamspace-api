@@ -117,3 +117,30 @@ export const removeWorkspaceMemberSchema = z.object({
 export type RemoveWorkspaceMemberParams = z.infer<
   typeof removeWorkspaceMemberSchema
 >["params"];
+
+export const createWorkspaceInvitationSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+    })
+    .strict(),
+
+  body: z
+    .object({
+      email: z
+        .string()
+        .trim()
+        .toLowerCase()
+        .pipe(z.email("Please provide a valid email address")),
+
+      role: z
+        .enum(["ADMIN", "MEMBER"], {
+          error: "Role must be either ADMIN or MEMBER",
+        })
+        .default("MEMBER"),
+    })
+    .strict(),
+});
+export type CreateWorkspaceInvitationInput = z.infer<
+  typeof createWorkspaceInvitationSchema
+>["body"];

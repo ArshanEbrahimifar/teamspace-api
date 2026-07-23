@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../../middleware/authenticate.middleware.js";
 import { validateRequest } from "../../middleware/validate-request.middleware.js";
 import {
+  createWorkspaceInvitationSchema,
   createWorkspaceSchema,
   removeWorkspaceMemberSchema,
   updateWorkspaceMemberRoleSchema,
@@ -10,6 +11,7 @@ import {
 } from "./workspace.schema.js";
 import {
   createWorkspaceHandler,
+  createWorkspaceInvitationHandler,
   deleteWorkspaceHandler,
   getWorkspaceHandler,
   listWorkspaceMembersHandler,
@@ -76,4 +78,11 @@ workspaceRouter.delete(
   validateRequest(workspaceIdParamsSchema),
   authorizeWorkspaceRoles("OWNER"),
   deleteWorkspaceHandler,
+);
+workspaceRouter.post(
+  "/:workspaceId/invitations",
+  authenticate,
+  validateRequest(createWorkspaceInvitationSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN"),
+  createWorkspaceInvitationHandler,
 );

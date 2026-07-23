@@ -20,6 +20,12 @@ const envSchema = z.object({
   JWT_AUDIENCE: z.string().min(1).default("teamspace-client"),
 
   REFRESH_TOKEN_EXPIRES_IN_DAYS: z.coerce.number().int().positive().default(7),
+
+  WORKSPACE_INVITATION_EXPIRES_IN_DAYS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(7),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

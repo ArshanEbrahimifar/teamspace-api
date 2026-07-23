@@ -1,10 +1,13 @@
 import { prisma } from "../../config/database.js";
+import { env } from "../../config/env.js";
 import type { WorkspaceRole } from "../../generated/prisma/enums.js";
 import { AppError } from "../../shared/errors/app-error.js";
+import { createInvitationToken } from "../../shared/utils/invitation-token.js";
 import { generateWorkspaceSlug } from "../../shared/utils/slug.js";
 
 import type {
   CreateWorkspaceInput,
+  CreateWorkspaceInvitationInput,
   UpdateWorkspaceInput,
   UpdateWorkspaceMemberRoleInput,
 } from "./workspace.schema.js";
@@ -320,5 +323,131 @@ export const removeWorkspaceMember = async (
     where: {
       id: targetMember.id,
     },
+  });
+};
+export const createWorkspaceInvitation = async (
+  workspaceId: string,
+  invitedById: string,
+  input: CreateWorkspaceInvitationInput,
+) => {
+  const now = new Date();
+
+  const expiresAt = new Date(
+    now.getTime() +
+      env.WORKSPACE_INVITATION_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000,
+  );
+
+  const { token, tokenHash } = createInvitationToken();
+
+  return prisma.$transaction(async (tx) => {
+    const existingUser = await tx.user.findUnique({
+      where: {
+        email: input.email,
+      },
+
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingUser) {
+      const existingMembership = await tx.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: existingUser.id,
+          },
+        },
+
+        select: {
+          id: true,
+        },
+      });
+
+      if (existingMembership) {
+        throw new AppError("User is already a workspace member", 409);
+      }
+    }
+
+    const existingInvitation = await tx.workspaceInvitation.findUnique({
+      where: {
+        workspaceId_email: {
+          workspaceId,
+          email: input.email,
+        },
+      },
+
+      select: {
+        id: true,
+        status: true,
+        expiresAt: true,
+      },
+    });
+
+    if (
+      existingInvitation?.status === "PENDING" &&
+      existingInvitation.expiresAt > now
+    ) {
+      throw new AppError(
+        "An active invitation already exists for this email",
+        409,
+      );
+    }
+
+    const invitationSelect = {
+      id: true,
+      email: true,
+      role: true,
+      status: true,
+      expiresAt: true,
+      createdAt: true,
+      updatedAt: true,
+
+      invitedBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    } as const;
+
+    const invitation = existingInvitation
+      ? await tx.workspaceInvitation.update({
+          where: {
+            id: existingInvitation.id,
+          },
+
+          data: {
+            role: input.role,
+            status: "PENDING",
+            tokenHash,
+            invitedById,
+            expiresAt,
+            acceptedAt: null,
+            declinedAt: null,
+            revokedAt: null,
+          },
+
+          select: invitationSelect,
+        })
+      : await tx.workspaceInvitation.create({
+          data: {
+            workspaceId,
+            email: input.email,
+            role: input.role,
+            tokenHash,
+            invitedById,
+            expiresAt,
+          },
+
+          select: invitationSelect,
+        });
+
+    return {
+      invitation,
+      invitationToken: token,
+      wasReissued: existingInvitation !== null,
+    };
   });
 };
