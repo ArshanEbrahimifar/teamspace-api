@@ -144,3 +144,16 @@ export const createWorkspaceInvitationSchema = z.object({
 export type CreateWorkspaceInvitationInput = z.infer<
   typeof createWorkspaceInvitationSchema
 >["body"];
+export const revokeWorkspaceInvitationSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+
+      invitationId: z.uuid("Please provide a valid invitation ID"),
+    })
+    .strict(),
+});
+
+export type RevokeWorkspaceInvitationParams = z.infer<
+  typeof revokeWorkspaceInvitationSchema
+>["params"];

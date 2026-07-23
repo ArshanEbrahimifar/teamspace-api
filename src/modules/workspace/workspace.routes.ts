@@ -5,6 +5,7 @@ import {
   createWorkspaceInvitationSchema,
   createWorkspaceSchema,
   removeWorkspaceMemberSchema,
+  revokeWorkspaceInvitationSchema,
   updateWorkspaceMemberRoleSchema,
   updateWorkspaceSchema,
   workspaceIdParamsSchema,
@@ -18,6 +19,7 @@ import {
   listWorkspaceMembersHandler,
   listWorkspacesHandler,
   removeWorkspaceMemberHandler,
+  revokeWorkspaceInvitationHandler,
   updateWorkspaceHandler,
   updateWorkspaceMemberRoleHandler,
 } from "./workspace.controller.js";
@@ -93,4 +95,11 @@ workspaceRouter.post(
   validateRequest(createWorkspaceInvitationSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   createWorkspaceInvitationHandler,
+);
+workspaceRouter.delete(
+  "/:workspaceId/invitations/:invitationId",
+  authenticate,
+  validateRequest(revokeWorkspaceInvitationSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN"),
+  revokeWorkspaceInvitationHandler,
 );

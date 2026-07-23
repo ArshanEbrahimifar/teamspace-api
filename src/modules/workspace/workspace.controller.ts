@@ -4,6 +4,7 @@ import type {
   CreateWorkspaceInput,
   CreateWorkspaceInvitationInput,
   RemoveWorkspaceMemberParams,
+  RevokeWorkspaceInvitationParams,
   UpdateWorkspaceInput,
   UpdateWorkspaceMemberRoleInput,
   UpdateWorkspaceMemberRoleParams,
@@ -15,6 +16,7 @@ import {
   getWorkspaceInvitations,
   getWorkspaceMembers,
   removeWorkspaceMember,
+  revokeWorkspaceInvitation,
   softDeleteWorkspace,
   updateWorkspace,
   updateWorkspaceMemberRole,
@@ -237,4 +239,23 @@ export const listWorkspaceInvitationsHandler: RequestHandler = async (
       invitations,
     },
   });
+};
+export const revokeWorkspaceInvitationHandler: RequestHandler = async (
+  req,
+  res,
+) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params } = res.locals.validatedData as {
+    params: RevokeWorkspaceInvitationParams;
+  };
+
+  await revokeWorkspaceInvitation(
+    req.workspaceContext.workspace.id,
+    params.invitationId,
+  );
+
+  res.status(204).send();
 };

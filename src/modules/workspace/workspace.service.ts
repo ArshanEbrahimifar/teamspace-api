@@ -504,3 +504,38 @@ export const getWorkspaceInvitations = async (workspaceId: string) => {
     invitedBy: invitation.invitedBy,
   }));
 };
+export const revokeWorkspaceInvitation = async (
+  workspaceId: string,
+  invitationId: string,
+): Promise<void> => {
+  const invitation = await prisma.workspaceInvitation.findFirst({
+    where: {
+      id: invitationId,
+      workspaceId,
+    },
+
+    select: {
+      id: true,
+      status: true,
+    },
+  });
+
+  if (!invitation) {
+    throw new AppError("Workspace invitation not found", 404);
+  }
+
+  if (invitation.status !== "PENDING") {
+    throw new AppError("Only pending invitations can be revoked", 409);
+  }
+
+  await prisma.workspaceInvitation.update({
+    where: {
+      id: invitation.id,
+    },
+
+    data: {
+      status: "REVOKED",
+      revokedAt: new Date(),
+    },
+  });
+};
