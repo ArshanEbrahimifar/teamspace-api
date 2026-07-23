@@ -451,3 +451,56 @@ export const createWorkspaceInvitation = async (
     };
   });
 };
+export const getWorkspaceInvitations = async (workspaceId: string) => {
+  const invitations = await prisma.workspaceInvitation.findMany({
+    where: {
+      workspaceId,
+    },
+
+    orderBy: {
+      createdAt: "desc",
+    },
+
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      status: true,
+      expiresAt: true,
+      acceptedAt: true,
+      declinedAt: true,
+      revokedAt: true,
+      createdAt: true,
+      updatedAt: true,
+
+      invitedBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  });
+
+  const now = new Date();
+
+  return invitations.map((invitation) => ({
+    id: invitation.id,
+    email: invitation.email,
+    role: invitation.role,
+    status: invitation.status,
+
+    isExpired: invitation.status === "PENDING" && invitation.expiresAt <= now,
+
+    expiresAt: invitation.expiresAt,
+    acceptedAt: invitation.acceptedAt,
+    declinedAt: invitation.declinedAt,
+    revokedAt: invitation.revokedAt,
+    createdAt: invitation.createdAt,
+    updatedAt: invitation.updatedAt,
+
+    invitedBy: invitation.invitedBy,
+  }));
+};

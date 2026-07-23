@@ -12,6 +12,7 @@ import {
   createWorkspace,
   createWorkspaceInvitation,
   getUserWorkspaces,
+  getWorkspaceInvitations,
   getWorkspaceMembers,
   removeWorkspaceMember,
   softDeleteWorkspace,
@@ -208,6 +209,32 @@ export const createWorkspaceInvitationHandler: RequestHandler = async (
             invitationToken: result.invitationToken,
           }
         : {}),
+    },
+  });
+};
+export const listWorkspaceInvitationsHandler: RequestHandler = async (
+  req,
+  res,
+) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const invitations = await getWorkspaceInvitations(
+    req.workspaceContext.workspace.id,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Workspace invitations retrieved successfully",
+
+    data: {
+      workspace: {
+        id: req.workspaceContext.workspace.id,
+        name: req.workspaceContext.workspace.name,
+      },
+
+      invitations,
     },
   });
 };
