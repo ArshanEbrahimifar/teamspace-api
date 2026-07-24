@@ -16,6 +16,7 @@ import {
   getUserWorkspaces,
   getWorkspaceInvitations,
   getWorkspaceMembers,
+  leaveWorkspace,
   removeWorkspaceMember,
   revokeWorkspaceInvitation,
   softDeleteWorkspace,
@@ -284,4 +285,16 @@ export const transferWorkspaceOwnershipHandler: RequestHandler = async (
     message: "Workspace ownership transferred successfully",
     data: result,
   });
+};
+export const leaveWorkspaceHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  await leaveWorkspace(
+    req.workspaceContext.workspace.id,
+    req.workspaceContext.membership.id,
+  );
+
+  res.status(204).send();
 };

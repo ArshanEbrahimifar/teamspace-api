@@ -16,6 +16,7 @@ import {
   createWorkspaceInvitationHandler,
   deleteWorkspaceHandler,
   getWorkspaceHandler,
+  leaveWorkspaceHandler,
   listWorkspaceInvitationsHandler,
   listWorkspaceMembersHandler,
   listWorkspacesHandler,
@@ -45,6 +46,14 @@ workspaceRouter.patch(
   validateRequest(updateWorkspaceMemberRoleSchema),
   authorizeWorkspaceRoles("OWNER"),
   updateWorkspaceMemberRoleHandler,
+);
+
+workspaceRouter.delete(
+  "/:workspaceId/members/me",
+  authenticate,
+  validateRequest(workspaceIdParamsSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  leaveWorkspaceHandler,
 );
 
 workspaceRouter.delete(

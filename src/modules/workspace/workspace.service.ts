@@ -641,3 +641,45 @@ export const transferWorkspaceOwnership = async (
     };
   });
 };
+export const leaveWorkspace = async (
+  workspaceId: string,
+  membershipId: string,
+): Promise<void> => {
+  const membership = await prisma.workspaceMember.findFirst({
+    where: {
+      id: membershipId,
+      workspaceId,
+    },
+
+    select: {
+      id: true,
+      role: true,
+    },
+  });
+
+  if (!membership) {
+    throw new AppError("Workspace membership not found", 404);
+  }
+
+  if (membership.role === "OWNER") {
+    throw new AppError(
+      "Workspace owner must transfer ownership before leaving",
+      409,
+    );
+  }
+
+  const deletedMembership = await prisma.workspaceMember.deleteMany({
+    where: {
+      id: membership.id,
+      workspaceId,
+
+      role: {
+        in: ["ADMIN", "MEMBER"],
+      },
+    },
+  });
+
+  if (deletedMembership.count !== 1) {
+    throw new AppError("Workspace membership has changed", 409);
+  }
+};
