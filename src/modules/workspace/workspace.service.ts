@@ -8,6 +8,7 @@ import { generateWorkspaceSlug } from "../../shared/utils/slug.js";
 import type {
   CreateWorkspaceInput,
   CreateWorkspaceInvitationInput,
+  TransferWorkspaceOwnershipInput,
   UpdateWorkspaceInput,
   UpdateWorkspaceMemberRoleInput,
 } from "./workspace.schema.js";
@@ -537,5 +538,106 @@ export const revokeWorkspaceInvitation = async (
       status: "REVOKED",
       revokedAt: new Date(),
     },
+  });
+};
+export const transferWorkspaceOwnership = async (
+  workspaceId: string,
+  currentOwnerMembershipId: string,
+  input: TransferWorkspaceOwnershipInput,
+) => {
+  return prisma.$transaction(async (tx) => {
+    const targetMember = await tx.workspaceMember.findFirst({
+      where: {
+        id: input.memberId,
+        workspaceId,
+      },
+
+      select: {
+        id: true,
+        role: true,
+        joinedAt: true,
+
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+
+    if (!targetMember) {
+      throw new AppError("Workspace member not found", 404);
+    }
+
+    if (targetMember.id === currentOwnerMembershipId) {
+      throw new AppError("You already own this workspace", 409);
+    }
+
+    if (targetMember.role === "OWNER") {
+      throw new AppError("Selected member is already the workspace owner", 409);
+    }
+
+    const demotedOwner = await tx.workspaceMember.updateMany({
+      where: {
+        id: currentOwnerMembershipId,
+        workspaceId,
+        role: "OWNER",
+      },
+
+      data: {
+        role: "ADMIN",
+      },
+    });
+
+    if (demotedOwner.count !== 1) {
+      throw new AppError("Workspace ownership has already changed", 409);
+    }
+
+    const newOwner = await tx.workspaceMember.update({
+      where: {
+        id: targetMember.id,
+      },
+
+      data: {
+        role: "OWNER",
+      },
+
+      select: {
+        id: true,
+        role: true,
+        joinedAt: true,
+
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+
+    return {
+      previousOwner: {
+        membership: {
+          id: currentOwnerMembershipId,
+          role: "ADMIN" as const,
+        },
+      },
+
+      newOwner: {
+        membership: {
+          id: newOwner.id,
+          role: newOwner.role,
+          joinedAt: newOwner.joinedAt,
+        },
+
+        user: newOwner.user,
+      },
+    };
   });
 };

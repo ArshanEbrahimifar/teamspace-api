@@ -6,6 +6,7 @@ import {
   createWorkspaceSchema,
   removeWorkspaceMemberSchema,
   revokeWorkspaceInvitationSchema,
+  transferWorkspaceOwnershipSchema,
   updateWorkspaceMemberRoleSchema,
   updateWorkspaceSchema,
   workspaceIdParamsSchema,
@@ -20,6 +21,7 @@ import {
   listWorkspacesHandler,
   removeWorkspaceMemberHandler,
   revokeWorkspaceInvitationHandler,
+  transferWorkspaceOwnershipHandler,
   updateWorkspaceHandler,
   updateWorkspaceMemberRoleHandler,
 } from "./workspace.controller.js";
@@ -102,4 +104,11 @@ workspaceRouter.delete(
   validateRequest(revokeWorkspaceInvitationSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   revokeWorkspaceInvitationHandler,
+);
+workspaceRouter.patch(
+  "/:workspaceId/ownership",
+  authenticate,
+  validateRequest(transferWorkspaceOwnershipSchema),
+  authorizeWorkspaceRoles("OWNER"),
+  transferWorkspaceOwnershipHandler,
 );

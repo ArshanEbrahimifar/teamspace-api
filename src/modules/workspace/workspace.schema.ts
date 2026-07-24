@@ -157,3 +157,21 @@ export const revokeWorkspaceInvitationSchema = z.object({
 export type RevokeWorkspaceInvitationParams = z.infer<
   typeof revokeWorkspaceInvitationSchema
 >["params"];
+
+export const transferWorkspaceOwnershipSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+    })
+    .strict(),
+
+  body: z
+    .object({
+      memberId: z.uuid("Please provide a valid member ID"),
+    })
+    .strict(),
+});
+
+export type TransferWorkspaceOwnershipInput = z.infer<
+  typeof transferWorkspaceOwnershipSchema
+>["body"];

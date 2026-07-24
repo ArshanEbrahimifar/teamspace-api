@@ -5,6 +5,7 @@ import type {
   CreateWorkspaceInvitationInput,
   RemoveWorkspaceMemberParams,
   RevokeWorkspaceInvitationParams,
+  TransferWorkspaceOwnershipInput,
   UpdateWorkspaceInput,
   UpdateWorkspaceMemberRoleInput,
   UpdateWorkspaceMemberRoleParams,
@@ -18,6 +19,7 @@ import {
   removeWorkspaceMember,
   revokeWorkspaceInvitation,
   softDeleteWorkspace,
+  transferWorkspaceOwnership,
   updateWorkspace,
   updateWorkspaceMemberRole,
 } from "./workspace.service.js";
@@ -258,4 +260,28 @@ export const revokeWorkspaceInvitationHandler: RequestHandler = async (
   );
 
   res.status(204).send();
+};
+export const transferWorkspaceOwnershipHandler: RequestHandler = async (
+  req,
+  res,
+) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { body } = res.locals.validatedData as {
+    body: TransferWorkspaceOwnershipInput;
+  };
+
+  const result = await transferWorkspaceOwnership(
+    req.workspaceContext.workspace.id,
+    req.workspaceContext.membership.id,
+    body,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Workspace ownership transferred successfully",
+    data: result,
+  });
 };
