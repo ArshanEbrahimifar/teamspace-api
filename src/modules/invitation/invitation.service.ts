@@ -1,7 +1,10 @@
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { hashInvitationToken } from "../../shared/utils/invitation-token.js";
-import type { AcceptWorkspaceInvitationInput } from "./invitation.schema.js";
+import type {
+  AcceptWorkspaceInvitationInput,
+  DeclineWorkspaceInvitationInput,
+} from "./invitation.schema.js";
 
 export const getCurrentUserInvitations = async (userEmail: string) => {
   const normalizedEmail = userEmail.trim().toLowerCase();
@@ -205,4 +208,94 @@ export const acceptWorkspaceInvitation = async (
       },
     };
   });
+};
+export const declineWorkspaceInvitation = async (
+  userEmail: string,
+  input: DeclineWorkspaceInvitationInput,
+) => {
+  const tokenHash = hashInvitationToken(input.token);
+
+  const normalizedUserEmail = userEmail.trim().toLowerCase();
+
+  const now = new Date();
+
+  const invitation = await prisma.workspaceInvitation.findUnique({
+    where: {
+      tokenHash,
+    },
+
+    select: {
+      id: true,
+      email: true,
+      status: true,
+      expiresAt: true,
+
+      workspace: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          logoUrl: true,
+          deletedAt: true,
+        },
+      },
+    },
+  });
+
+  if (!invitation) {
+    throw new AppError("Invitation not found", 404);
+  }
+
+  const normalizedInvitationEmail = invitation.email.trim().toLowerCase();
+
+  if (normalizedInvitationEmail !== normalizedUserEmail) {
+    throw new AppError("This invitation was not issued to your account", 403);
+  }
+
+  if (invitation.workspace.deletedAt) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  if (invitation.status !== "PENDING") {
+    throw new AppError("Invitation is no longer available", 409);
+  }
+
+  if (invitation.expiresAt <= now) {
+    throw new AppError("Invitation has expired", 409);
+  }
+
+  const declinedInvitation = await prisma.workspaceInvitation.updateMany({
+    where: {
+      id: invitation.id,
+      status: "PENDING",
+
+      expiresAt: {
+        gt: now,
+      },
+    },
+
+    data: {
+      status: "DECLINED",
+      declinedAt: now,
+    },
+  });
+
+  if (declinedInvitation.count !== 1) {
+    throw new AppError("Invitation is no longer available", 409);
+  }
+
+  return {
+    workspace: {
+      id: invitation.workspace.id,
+      name: invitation.workspace.name,
+      slug: invitation.workspace.slug,
+      logoUrl: invitation.workspace.logoUrl,
+    },
+
+    invitation: {
+      id: invitation.id,
+      status: "DECLINED" as const,
+      declinedAt: now,
+    },
+  };
 };

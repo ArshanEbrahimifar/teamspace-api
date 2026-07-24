@@ -4,9 +4,13 @@ import { AppError } from "../../shared/errors/app-error.js";
 
 import {
   acceptWorkspaceInvitation,
+  declineWorkspaceInvitation,
   getCurrentUserInvitations,
 } from "./invitation.service.js";
-import type { AcceptWorkspaceInvitationInput } from "./invitation.schema.js";
+import type {
+  AcceptWorkspaceInvitationInput,
+  DeclineWorkspaceInvitationInput,
+} from "./invitation.schema.js";
 
 export const listCurrentUserInvitationsHandler: RequestHandler = async (
   req,
@@ -48,6 +52,26 @@ export const acceptWorkspaceInvitationHandler: RequestHandler = async (
   res.status(200).json({
     success: true,
     message: "Workspace invitation accepted successfully",
+    data: result,
+  });
+};
+export const declineWorkspaceInvitationHandler: RequestHandler = async (
+  req,
+  res,
+) => {
+  if (!req.auth) {
+    throw new AppError("Authentication is required", 401);
+  }
+
+  const { body } = res.locals.validatedData as {
+    body: DeclineWorkspaceInvitationInput;
+  };
+
+  const result = await declineWorkspaceInvitation(req.auth.user.email, body);
+
+  res.status(200).json({
+    success: true,
+    message: "Workspace invitation declined successfully",
     data: result,
   });
 };

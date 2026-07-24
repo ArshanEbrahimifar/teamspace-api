@@ -15,3 +15,9 @@ export const acceptWorkspaceInvitationSchema = z.object({
 export type AcceptWorkspaceInvitationInput = z.infer<
   typeof acceptWorkspaceInvitationSchema
 >["body"];
+
+export const declineWorkspaceInvitationSchema = acceptWorkspaceInvitationSchema;
+
+export type DeclineWorkspaceInvitationInput = z.infer<
+  typeof declineWorkspaceInvitationSchema
+>["body"];
