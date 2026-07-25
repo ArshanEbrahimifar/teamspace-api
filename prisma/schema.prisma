@@ -22,6 +22,14 @@ enum WorkspaceInvitationStatus {
   REVOKED
 }
 
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
 
 model User {
   id           String        @id @default(uuid())
@@ -33,9 +41,11 @@ model User {
   lastLoginAt  DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+
   authSessions AuthSession[]
   workspaceMemberships WorkspaceMember[]
   workspaceInvitationsSent  WorkspaceInvitation[] @relation("WorkspaceInvitationInviter")
+  projectsCreated      Project[]   @relation("ProjectCreator")
   @@map("users")
 }
 model AuthSession {
@@ -66,8 +76,10 @@ model Workspace{
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   deletedAt    DateTime?
+
   members      WorkspaceMember[]
   invitations     WorkspaceInvitation[]
+  projects      Project[]
 
   @@index([deletedAt])
   @@map("workspaces")
@@ -112,4 +124,29 @@ model WorkspaceInvitation {
   @@index([workspaceId, status]) 
   @@index([expiresAt])
   @@map("workspace_invitations")
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  workspaceId String
+  name        String
+  key         String
+  description String?
+  status      ProjectStatus @default(PLANNING)
+  startDate   DateTime?
+  dueDate     DateTime?
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdBy User @relation("ProjectCreator",fields: [createdById],references: [id],onDelete: Restrict)
+
+  @@unique([workspaceId, key])
+  @@index([workspaceId, status])
+  @@index([workspaceId, deletedAt])
+  @@index([createdById])
+  @@map("projects")
 }
