@@ -27,8 +27,14 @@ import {
   updateWorkspaceMemberRoleHandler,
 } from "./workspace.controller.js";
 import { authorizeWorkspaceRoles } from "../../middleware/authorize-workspace.middleware.js";
-import { createProjectSchema } from "../project/project.schema.js";
-import { createProjectHandler } from "../project/project.controller.js";
+import {
+  createProjectSchema,
+  listWorkspaceProjectsSchema,
+} from "../project/project.schema.js";
+import {
+  createProjectHandler,
+  listWorkspaceProjectsHandler,
+} from "../project/project.controller.js";
 
 export const workspaceRouter = Router();
 
@@ -123,6 +129,15 @@ workspaceRouter.patch(
   authorizeWorkspaceRoles("OWNER"),
   transferWorkspaceOwnershipHandler,
 );
+
+workspaceRouter.get(
+  "/:workspaceId/projects",
+  authenticate,
+  validateRequest(listWorkspaceProjectsSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  listWorkspaceProjectsHandler,
+);
+
 workspaceRouter.post(
   "/:workspaceId/projects",
   authenticate,

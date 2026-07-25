@@ -56,3 +56,40 @@ export const createProjectSchema = z.object({
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>["body"];
+
+export const listWorkspaceProjectsSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+    })
+    .strict(),
+
+  query: z
+    .object({
+      page: z.coerce.number().int().positive().default(1),
+
+      limit: z.coerce.number().int().min(1).max(100).default(10),
+
+      search: z
+        .string()
+        .trim()
+        .min(1, "Search term cannot be empty")
+        .max(100, "Search term cannot exceed 100 characters")
+        .optional(),
+
+      status: z
+        .enum(["PLANNING", "ACTIVE", "ON_HOLD", "COMPLETED", "ARCHIVED"])
+        .optional(),
+
+      sortBy: z
+        .enum(["createdAt", "name", "status", "dueDate"])
+        .default("createdAt"),
+
+      sortOrder: z.enum(["asc", "desc"]).default("desc"),
+    })
+    .strict(),
+});
+
+export type ListWorkspaceProjectsQuery = z.infer<
+  typeof listWorkspaceProjectsSchema
+>["query"];
