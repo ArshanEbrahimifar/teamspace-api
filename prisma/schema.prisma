@@ -46,6 +46,8 @@ model User {
   workspaceMemberships WorkspaceMember[]
   workspaceInvitationsSent  WorkspaceInvitation[] @relation("WorkspaceInvitationInviter")
   projectsCreated      Project[]   @relation("ProjectCreator")
+  boardsCreated     Board[]  @relation("BoardCreator")
+
   @@map("users")
 }
 model AuthSession {
@@ -139,6 +141,8 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   deletedAt   DateTime?
+  boards     Board[]
+
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -149,4 +153,25 @@ model Project {
   @@index([workspaceId, deletedAt])
   @@index([createdById])
   @@map("projects")
+}
+
+
+model Board {
+  id          String   @id @default(uuid())
+  projectId   String
+  name        String
+  description String?
+  position    Int      @default(0)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  project Project @relation(fields: [projectId],references: [id],onDelete: Cascade)
+
+  createdBy User @relation("BoardCreator",fields: [createdById],references: [id],onDelete: Restrict)
+
+  @@index([projectId, deletedAt, position])
+  @@index([createdById])
+  @@map("boards")
 }
