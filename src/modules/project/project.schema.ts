@@ -93,3 +93,14 @@ export const listWorkspaceProjectsSchema = z.object({
 export type ListWorkspaceProjectsQuery = z.infer<
   typeof listWorkspaceProjectsSchema
 >["query"];
+
+export const getProjectSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+      projectId: z.uuid("Please provide a valid project ID"),
+    })
+    .strict(),
+});
+
+export type GetProjectParams = z.infer<typeof getProjectSchema>["params"];

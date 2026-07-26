@@ -29,10 +29,12 @@ import {
 import { authorizeWorkspaceRoles } from "../../middleware/authorize-workspace.middleware.js";
 import {
   createProjectSchema,
+  getProjectSchema,
   listWorkspaceProjectsSchema,
 } from "../project/project.schema.js";
 import {
   createProjectHandler,
+  getProjectHandler,
   listWorkspaceProjectsHandler,
 } from "../project/project.controller.js";
 
@@ -144,4 +146,12 @@ workspaceRouter.post(
   validateRequest(createProjectSchema),
   authorizeWorkspaceRoles("ADMIN", "OWNER"),
   createProjectHandler,
+);
+
+workspaceRouter.get(
+  "/:workspaceId/projects/:projectId",
+  authenticate,
+  validateRequest(getProjectSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  getProjectHandler,
 );

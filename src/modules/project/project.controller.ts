@@ -4,9 +4,14 @@ import { AppError } from "../../shared/errors/app-error.js";
 
 import type {
   CreateProjectInput,
+  GetProjectParams,
   ListWorkspaceProjectsQuery,
 } from "./project.schema.js";
-import { createProject, getWorkspaceProjects } from "./project.service.js";
+import {
+  createProject,
+  getProjectById,
+  getWorkspaceProjects,
+} from "./project.service.js";
 
 export const createProjectHandler: RequestHandler = async (req, res) => {
   if (!req.auth || !req.workspaceContext) {
@@ -66,6 +71,34 @@ export const listWorkspaceProjectsHandler: RequestHandler = async (
 
       projects: result.projects,
       pagination: result.pagination,
+    },
+  });
+};
+export const getProjectHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params } = res.locals.validatedData as {
+    params: GetProjectParams;
+  };
+
+  const project = await getProjectById(
+    req.workspaceContext.workspace.id,
+    params.projectId,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Project retrieved successfully",
+
+    data: {
+      workspace: {
+        id: req.workspaceContext.workspace.id,
+        name: req.workspaceContext.workspace.name,
+      },
+
+      project,
     },
   });
 };

@@ -194,3 +194,42 @@ export const getWorkspaceProjects = async (
     },
   };
 };
+export const getProjectById = async (
+  workspaceId: string,
+  projectId: string,
+) => {
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      workspaceId,
+      deletedAt: null,
+    },
+
+    select: {
+      id: true,
+      name: true,
+      key: true,
+      description: true,
+      status: true,
+      startDate: true,
+      dueDate: true,
+      createdAt: true,
+      updatedAt: true,
+
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  });
+
+  if (!project) {
+    throw new AppError("Project not found", 404);
+  }
+
+  return project;
+};
