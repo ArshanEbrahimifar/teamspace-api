@@ -31,11 +31,13 @@ import {
   createProjectSchema,
   getProjectSchema,
   listWorkspaceProjectsSchema,
+  updateProjectSchema,
 } from "../project/project.schema.js";
 import {
   createProjectHandler,
   getProjectHandler,
   listWorkspaceProjectsHandler,
+  updateProjectHandler,
 } from "../project/project.controller.js";
 
 export const workspaceRouter = Router();
@@ -154,4 +156,11 @@ workspaceRouter.get(
   validateRequest(getProjectSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   getProjectHandler,
+);
+workspaceRouter.patch(
+  "/:workspaceId/projects/:projectId",
+  authenticate,
+  validateRequest(updateProjectSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN"),
+  updateProjectHandler,
 );

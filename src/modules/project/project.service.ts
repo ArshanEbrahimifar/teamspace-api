@@ -4,6 +4,7 @@ import { AppError } from "../../shared/errors/app-error.js";
 import type {
   CreateProjectInput,
   ListWorkspaceProjectsQuery,
+  UpdateProjectInput,
 } from "./project.schema.js";
 
 export const createProject = async (
@@ -232,4 +233,96 @@ export const getProjectById = async (
   }
 
   return project;
+};
+export const updateProject = async (
+  workspaceId: string,
+  projectId: string,
+  input: UpdateProjectInput,
+) => {
+  const currentProject = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      workspaceId,
+      deletedAt: null,
+    },
+
+    select: {
+      id: true,
+      startDate: true,
+      dueDate: true,
+    },
+  });
+
+  if (!currentProject) {
+    throw new AppError("Project not found", 404);
+  }
+
+  const nextStartDate =
+    input.startDate === undefined ? currentProject.startDate : input.startDate;
+
+  const nextDueDate =
+    input.dueDate === undefined ? currentProject.dueDate : input.dueDate;
+
+  if (nextStartDate && nextDueDate && nextDueDate < nextStartDate) {
+    throw new AppError("Project due date cannot be before the start date", 400);
+  }
+
+  return prisma.project.update({
+    where: {
+      id: currentProject.id,
+    },
+
+    data: {
+      ...(input.name !== undefined
+        ? {
+            name: input.name,
+          }
+        : {}),
+
+      ...(input.description !== undefined
+        ? {
+            description: input.description,
+          }
+        : {}),
+
+      ...(input.status !== undefined
+        ? {
+            status: input.status,
+          }
+        : {}),
+
+      ...(input.startDate !== undefined
+        ? {
+            startDate: input.startDate,
+          }
+        : {}),
+
+      ...(input.dueDate !== undefined
+        ? {
+            dueDate: input.dueDate,
+          }
+        : {}),
+    },
+
+    select: {
+      id: true,
+      name: true,
+      key: true,
+      description: true,
+      status: true,
+      startDate: true,
+      dueDate: true,
+      createdAt: true,
+      updatedAt: true,
+
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  });
 };

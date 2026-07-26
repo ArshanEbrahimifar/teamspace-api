@@ -104,3 +104,66 @@ export const getProjectSchema = z.object({
 });
 
 export type GetProjectParams = z.infer<typeof getProjectSchema>["params"];
+
+const optionalNullableProjectDateSchema = z.iso
+  .datetime({ offset: true })
+  .transform((value) => new Date(value))
+  .nullable()
+  .optional();
+
+export const updateProjectSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+
+      projectId: z.uuid("Please provide a valid project ID"),
+    })
+    .strict(),
+
+  body: z
+    .object({
+      name: z
+        .string()
+        .trim()
+        .min(2, "Project name must be at least 2 characters")
+        .max(100, "Project name cannot exceed 100 characters")
+        .optional(),
+
+      description: z
+        .string()
+        .trim()
+        .min(1, "Project description cannot be empty")
+        .max(2000, "Project description cannot exceed 2000 characters")
+        .nullable()
+        .optional(),
+
+      status: z
+        .enum(["PLANNING", "ACTIVE", "ON_HOLD", "COMPLETED", "ARCHIVED"])
+        .optional(),
+
+      startDate: optionalNullableProjectDateSchema,
+
+      dueDate: optionalNullableProjectDateSchema,
+    })
+    .strict()
+    .refine((data) => Object.keys(data).length > 0, {
+      message: "At least one project field must be provided",
+    })
+    .superRefine((data, ctx) => {
+      if (
+        data.startDate instanceof Date &&
+        data.dueDate instanceof Date &&
+        data.dueDate < data.startDate
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["dueDate"],
+          message: "Project due date cannot be before the start date",
+        });
+      }
+    }),
+});
+
+export type UpdateProjectInput = z.infer<typeof updateProjectSchema>["body"];
+
+export type UpdateProjectParams = z.infer<typeof updateProjectSchema>["params"];
