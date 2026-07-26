@@ -326,3 +326,21 @@ export const updateProject = async (
     },
   });
 };
+export const softDeleteProject = async (
+  workspaceId: string,
+  projectId: string,
+): Promise<void> => {
+  const deletedProject = await prisma.project.updateMany({
+    where: {
+      id: projectId,
+      workspaceId,
+      deletedAt: null,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+  if (deletedProject.count !== 1) {
+    throw new AppError("Project not found", 404);
+  }
+};

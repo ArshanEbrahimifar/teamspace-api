@@ -4,6 +4,7 @@ import { AppError } from "../../shared/errors/app-error.js";
 
 import type {
   CreateProjectInput,
+  DeleteProjectParams,
   GetProjectParams,
   ListWorkspaceProjectsQuery,
   UpdateProjectInput,
@@ -13,6 +14,7 @@ import {
   createProject,
   getProjectById,
   getWorkspaceProjects,
+  softDeleteProject,
   updateProject,
 } from "./project.service.js";
 
@@ -134,4 +136,17 @@ export const updateProjectHandler: RequestHandler = async (req, res) => {
       project,
     },
   });
+};
+export const deleteProjectHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params } = res.locals.validatedData as {
+    params: DeleteProjectParams;
+  };
+
+  await softDeleteProject(req.workspaceContext.workspace.id, params.projectId);
+
+  res.status(204).send();
 };

@@ -29,12 +29,14 @@ import {
 import { authorizeWorkspaceRoles } from "../../middleware/authorize-workspace.middleware.js";
 import {
   createProjectSchema,
+  deleteProjectSchema,
   getProjectSchema,
   listWorkspaceProjectsSchema,
   updateProjectSchema,
 } from "../project/project.schema.js";
 import {
   createProjectHandler,
+  deleteProjectHandler,
   getProjectHandler,
   listWorkspaceProjectsHandler,
   updateProjectHandler,
@@ -163,4 +165,11 @@ workspaceRouter.patch(
   validateRequest(updateProjectSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   updateProjectHandler,
+);
+workspaceRouter.delete(
+  "/:workspaceId/projects/:projectId",
+  authenticate,
+  validateRequest(deleteProjectSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN"),
+  deleteProjectHandler,
 );

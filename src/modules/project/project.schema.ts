@@ -167,3 +167,7 @@ export const updateProjectSchema = z.object({
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>["body"];
 
 export type UpdateProjectParams = z.infer<typeof updateProjectSchema>["params"];
+
+export const deleteProjectSchema = getProjectSchema;
+
+export type DeleteProjectParams = z.infer<typeof deleteProjectSchema>["params"];
