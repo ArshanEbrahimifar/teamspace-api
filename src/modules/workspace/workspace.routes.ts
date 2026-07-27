@@ -41,8 +41,14 @@ import {
   listWorkspaceProjectsHandler,
   updateProjectHandler,
 } from "../project/project.controller.js";
-import { createBoardSchema } from "../board/board.schema.js";
-import { createBoardHandler } from "../board/board.controller.js";
+import {
+  createBoardSchema,
+  listProjectBoardsSchema,
+} from "../board/board.schema.js";
+import {
+  createBoardHandler,
+  listProjectBoardsHandler,
+} from "../board/board.controller.js";
 
 export const workspaceRouter = Router();
 
@@ -181,4 +187,11 @@ workspaceRouter.post(
   validateRequest(createBoardSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   createBoardHandler,
+);
+workspaceRouter.get(
+  "/:workspaceId/projects/:projectId/boards",
+  authenticate,
+  validateRequest(listProjectBoardsSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  listProjectBoardsHandler,
 );
