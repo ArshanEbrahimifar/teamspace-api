@@ -43,10 +43,12 @@ import {
 } from "../project/project.controller.js";
 import {
   createBoardSchema,
+  getBoardSchema,
   listProjectBoardsSchema,
 } from "../board/board.schema.js";
 import {
   createBoardHandler,
+  getBoardHandler,
   listProjectBoardsHandler,
 } from "../board/board.controller.js";
 
@@ -181,6 +183,15 @@ workspaceRouter.delete(
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   deleteProjectHandler,
 );
+
+workspaceRouter.get(
+  "/:workspaceId/projects/:projectId/boards",
+  authenticate,
+  validateRequest(listProjectBoardsSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  listProjectBoardsHandler,
+);
+
 workspaceRouter.post(
   "/:workspaceId/projects/:projectId/boards",
   authenticate,
@@ -188,10 +199,11 @@ workspaceRouter.post(
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   createBoardHandler,
 );
+
 workspaceRouter.get(
-  "/:workspaceId/projects/:projectId/boards",
+  "/:workspaceId/projects/:projectId/boards/:boardId",
   authenticate,
-  validateRequest(listProjectBoardsSchema),
+  validateRequest(getBoardSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
-  listProjectBoardsHandler,
+  getBoardHandler,
 );

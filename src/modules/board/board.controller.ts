@@ -5,9 +5,14 @@ import { AppError } from "../../shared/errors/app-error.js";
 import type {
   CreateBoardInput,
   CreateBoardParams,
+  GetBoardParams,
   ListProjectBoardsParams,
 } from "./board.schema.js";
-import { createBoard, getProjectBoards } from "./board.service.js";
+import {
+  createBoard,
+  getBoardById,
+  getProjectBoards,
+} from "./board.service.js";
 
 export const createBoardHandler: RequestHandler = async (req, res) => {
   if (!req.auth || !req.workspaceContext) {
@@ -73,6 +78,45 @@ export const listProjectBoardsHandler: RequestHandler = async (req, res) => {
       },
 
       boards: project.boards,
+    },
+  });
+};
+export const getBoardHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params } = res.locals.validatedData as {
+    params: GetBoardParams;
+  };
+
+  const board = await getBoardById(
+    req.workspaceContext.workspace.id,
+    params.projectId,
+    params.boardId,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Board retrieved successfully",
+
+    data: {
+      workspace: {
+        id: req.workspaceContext.workspace.id,
+        name: req.workspaceContext.workspace.name,
+      },
+
+      project: board.project,
+
+      board: {
+        id: board.id,
+        name: board.name,
+        description: board.description,
+        position: board.position,
+        createdAt: board.createdAt,
+        updatedAt: board.updatedAt,
+        createdBy: board.createdBy,
+      },
     },
   });
 };
