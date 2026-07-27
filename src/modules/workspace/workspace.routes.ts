@@ -41,6 +41,8 @@ import {
   listWorkspaceProjectsHandler,
   updateProjectHandler,
 } from "../project/project.controller.js";
+import { createBoardSchema } from "../board/board.schema.js";
+import { createBoardHandler } from "../board/board.controller.js";
 
 export const workspaceRouter = Router();
 
@@ -172,4 +174,11 @@ workspaceRouter.delete(
   validateRequest(deleteProjectSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   deleteProjectHandler,
+);
+workspaceRouter.post(
+  "/:workspaceId/projects/:projectId/boards",
+  authenticate,
+  validateRequest(createBoardSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN"),
+  createBoardHandler,
 );
