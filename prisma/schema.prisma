@@ -48,6 +48,8 @@ model User {
   projectsCreated      Project[]   @relation("ProjectCreator")
   boardsCreated     Board[]  @relation("BoardCreator")
 
+  boardColumnsCreated    BoardColumn[]  @relation("BoardColumnCreator")
+
   @@map("users")
 }
 model AuthSession {
@@ -171,7 +173,28 @@ model Board {
 
   createdBy User @relation("BoardCreator",fields: [createdById],references: [id],onDelete: Restrict)
 
+  columns  BoardColumn[]
+
   @@index([projectId, deletedAt, position])
   @@index([createdById])
   @@map("boards")
+}
+
+model BoardColumn {
+  id          String   @id @default(uuid())
+  boardId     String
+  name        String
+  position    Int      @default(0)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  board Board @relation(fields: [boardId],references: [id],onDelete: Cascade)
+
+  createdBy User @relation("BoardColumnCreator",fields: [createdById],references: [id],onDelete: Restrict)
+
+  @@index([boardId, deletedAt, position])
+  @@index([createdById])
+  @@map("board_columns")
 }
