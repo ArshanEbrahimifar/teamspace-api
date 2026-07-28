@@ -55,6 +55,8 @@ import {
   listProjectBoardsHandler,
   updateBoardHandler,
 } from "../board/board.controller.js";
+import { createBoardColumnSchema } from "../board-column/board-column.schema.js";
+import { createBoardColumnHandler } from "../board-column/board-column.controller.js";
 
 export const workspaceRouter = Router();
 
@@ -224,4 +226,11 @@ workspaceRouter.delete(
   validateRequest(deleteBoardSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   deleteBoardHandler,
+);
+workspaceRouter.post(
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns",
+  authenticate,
+  validateRequest(createBoardColumnSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN"),
+  createBoardColumnHandler,
 );
