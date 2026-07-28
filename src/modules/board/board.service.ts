@@ -1,6 +1,6 @@
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../shared/errors/app-error.js";
-import type { CreateBoardInput } from "./board.schema.js";
+import type { CreateBoardInput, UpdateBoardInput } from "./board.schema.js";
 
 export const createBoard = async (
   workspaceId: string,
@@ -198,4 +198,93 @@ export const getBoardById = async (
   }
 
   return board;
+};
+export const updateBoard = async (
+  workspaceId: string,
+  projectId: string,
+  boardId: string,
+  input: UpdateBoardInput,
+) => {
+  return prisma.$transaction(async (tx) => {
+    const updatedBoard = await tx.board.updateMany({
+      where: {
+        id: boardId,
+        projectId,
+        deletedAt: null,
+
+        project: {
+          is: {
+            workspaceId,
+            deletedAt: null,
+          },
+        },
+      },
+
+      data: {
+        ...(input.name !== undefined
+          ? {
+              name: input.name,
+            }
+          : {}),
+
+        ...(input.description !== undefined
+          ? {
+              description: input.description,
+            }
+          : {}),
+      },
+    });
+
+    if (updatedBoard.count !== 1) {
+      throw new AppError("Board not found", 404);
+    }
+
+    const board = await tx.board.findFirst({
+      where: {
+        id: boardId,
+        projectId,
+        deletedAt: null,
+
+        project: {
+          is: {
+            workspaceId,
+            deletedAt: null,
+          },
+        },
+      },
+
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        position: true,
+        createdAt: true,
+        updatedAt: true,
+
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+
+        project: {
+          select: {
+            id: true,
+            name: true,
+            key: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!board) {
+      throw new AppError("Board not found", 404);
+    }
+
+    return board;
+  });
 };

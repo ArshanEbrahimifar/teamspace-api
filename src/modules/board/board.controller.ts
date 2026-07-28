@@ -7,11 +7,14 @@ import type {
   CreateBoardParams,
   GetBoardParams,
   ListProjectBoardsParams,
+  UpdateBoardInput,
+  UpdateBoardParams,
 } from "./board.schema.js";
 import {
   createBoard,
   getBoardById,
   getProjectBoards,
+  updateBoard,
 } from "./board.service.js";
 
 export const createBoardHandler: RequestHandler = async (req, res) => {
@@ -99,6 +102,47 @@ export const getBoardHandler: RequestHandler = async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Board retrieved successfully",
+
+    data: {
+      workspace: {
+        id: req.workspaceContext.workspace.id,
+        name: req.workspaceContext.workspace.name,
+      },
+
+      project: board.project,
+
+      board: {
+        id: board.id,
+        name: board.name,
+        description: board.description,
+        position: board.position,
+        createdAt: board.createdAt,
+        updatedAt: board.updatedAt,
+        createdBy: board.createdBy,
+      },
+    },
+  });
+};
+export const updateBoardHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params, body } = res.locals.validatedData as {
+    params: UpdateBoardParams;
+    body: UpdateBoardInput;
+  };
+
+  const board = await updateBoard(
+    req.workspaceContext.workspace.id,
+    params.projectId,
+    params.boardId,
+    body,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Board updated successfully",
 
     data: {
       workspace: {

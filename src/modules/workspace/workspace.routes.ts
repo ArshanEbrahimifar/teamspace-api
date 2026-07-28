@@ -45,11 +45,13 @@ import {
   createBoardSchema,
   getBoardSchema,
   listProjectBoardsSchema,
+  updateBoardSchema,
 } from "../board/board.schema.js";
 import {
   createBoardHandler,
   getBoardHandler,
   listProjectBoardsHandler,
+  updateBoardHandler,
 } from "../board/board.controller.js";
 
 export const workspaceRouter = Router();
@@ -206,4 +208,11 @@ workspaceRouter.get(
   validateRequest(getBoardSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   getBoardHandler,
+);
+workspaceRouter.patch(
+  "/:workspaceId/projects/:projectId/boards/:boardId",
+  authenticate,
+  validateRequest(updateBoardSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN"),
+  updateBoardHandler,
 );
