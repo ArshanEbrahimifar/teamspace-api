@@ -5,6 +5,7 @@ import { AppError } from "../../shared/errors/app-error.js";
 import type {
   CreateBoardInput,
   CreateBoardParams,
+  DeleteBoardParams,
   GetBoardParams,
   ListProjectBoardsParams,
   UpdateBoardInput,
@@ -14,6 +15,7 @@ import {
   createBoard,
   getBoardById,
   getProjectBoards,
+  softDeleteBoard,
   updateBoard,
 } from "./board.service.js";
 
@@ -163,4 +165,21 @@ export const updateBoardHandler: RequestHandler = async (req, res) => {
       },
     },
   });
+};
+export const deleteBoardHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params } = res.locals.validatedData as {
+    params: DeleteBoardParams;
+  };
+
+  await softDeleteBoard(
+    req.workspaceContext.workspace.id,
+    params.projectId,
+    params.boardId,
+  );
+
+  res.status(204).send();
 };

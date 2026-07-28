@@ -91,3 +91,6 @@ export const updateBoardSchema = z.object({
 export type UpdateBoardInput = z.infer<typeof updateBoardSchema>["body"];
 
 export type UpdateBoardParams = z.infer<typeof updateBoardSchema>["params"];
+
+export const deleteBoardSchema = getBoardSchema;
+export type DeleteBoardParams = z.infer<typeof getBoardSchema>["params"];

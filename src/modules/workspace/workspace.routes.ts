@@ -43,12 +43,14 @@ import {
 } from "../project/project.controller.js";
 import {
   createBoardSchema,
+  deleteBoardSchema,
   getBoardSchema,
   listProjectBoardsSchema,
   updateBoardSchema,
 } from "../board/board.schema.js";
 import {
   createBoardHandler,
+  deleteBoardHandler,
   getBoardHandler,
   listProjectBoardsHandler,
   updateBoardHandler,
@@ -215,4 +217,11 @@ workspaceRouter.patch(
   validateRequest(updateBoardSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   updateBoardHandler,
+);
+workspaceRouter.delete(
+  "/:workspaceId/projects/:projectId/boards/:boardId",
+  authenticate,
+  validateRequest(deleteBoardSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN"),
+  deleteBoardHandler,
 );

@@ -288,3 +288,31 @@ export const updateBoard = async (
     return board;
   });
 };
+export const softDeleteBoard = async (
+  workspaceId: string,
+  projectId: string,
+  boardId: string,
+): Promise<void> => {
+  const deletedBoard = await prisma.board.updateMany({
+    where: {
+      id: boardId,
+      projectId,
+      deletedAt: null,
+
+      project: {
+        is: {
+          workspaceId,
+          deletedAt: null,
+        },
+      },
+    },
+
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+
+  if (deletedBoard.count !== 1) {
+    throw new AppError("Board not found", 404);
+  }
+};
