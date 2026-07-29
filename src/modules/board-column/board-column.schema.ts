@@ -29,3 +29,17 @@ export type CreateBoardColumnParams = z.infer<
 export type CreateBoardColumnInput = z.infer<
   typeof createBoardColumnSchema
 >["body"];
+
+export const listBoardColumnsSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+      projectId: z.uuid("Please provide a valid project ID"),
+      boardId: z.uuid("Please provide a valid board ID"),
+    })
+    .strict(),
+});
+
+export type ListBoardColumnsParams = z.infer<
+  typeof listBoardColumnsSchema
+>["params"];
