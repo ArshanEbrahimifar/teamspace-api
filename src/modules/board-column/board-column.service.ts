@@ -353,3 +353,39 @@ export const updateBoardColumn = async (
     return column;
   });
 };
+export const softDeleteBoardColumn = async (
+  workspaceId: string,
+  projectId: string,
+  boardId: string,
+  columnId: string,
+): Promise<void> => {
+  const deletedColumn = await prisma.boardColumn.updateMany({
+    where: {
+      id: columnId,
+      boardId,
+      deletedAt: null,
+
+      board: {
+        is: {
+          projectId,
+          deletedAt: null,
+
+          project: {
+            is: {
+              workspaceId,
+              deletedAt: null,
+            },
+          },
+        },
+      },
+    },
+
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+
+  if (deletedColumn.count !== 1) {
+    throw new AppError("Board column not found", 404);
+  }
+};

@@ -78,3 +78,7 @@ export type UpdateBoardColumnParams = z.infer<
 export type UpdateBoardColumnInput = z.infer<
   typeof updateBoardColumnSchema
 >["body"];
+
+export const deleteBoardColumnSchema = getBoardColumnSchema;
+
+export type DeleteBoardColumnParams = GetBoardColumnsParams;

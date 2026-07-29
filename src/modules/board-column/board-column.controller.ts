@@ -5,6 +5,7 @@ import { AppError } from "../../shared/errors/app-error.js";
 import type {
   CreateBoardColumnInput,
   CreateBoardColumnParams,
+  DeleteBoardColumnParams,
   GetBoardColumnsParams,
   ListBoardColumnsParams,
   UpdateBoardColumnInput,
@@ -14,6 +15,7 @@ import {
   createBoardColumn,
   getBoardColumnById,
   getBoardColumns,
+  softDeleteBoardColumn,
   updateBoardColumn,
 } from "./board-column.service.js";
 
@@ -182,4 +184,22 @@ export const updateBoardColumnHandler: RequestHandler = async (req, res) => {
       },
     },
   });
+};
+export const deleteBoardColumnHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params } = res.locals.validatedData as {
+    params: DeleteBoardColumnParams;
+  };
+
+  await softDeleteBoardColumn(
+    req.workspaceContext.workspace.id,
+    params.projectId,
+    params.boardId,
+    params.columnId,
+  );
+
+  res.status(204).send();
 };

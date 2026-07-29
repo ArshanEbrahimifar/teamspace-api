@@ -57,12 +57,14 @@ import {
 } from "../board/board.controller.js";
 import {
   createBoardColumnSchema,
+  deleteBoardColumnSchema,
   getBoardColumnSchema,
   listBoardColumnsSchema,
   updateBoardColumnSchema,
 } from "../board-column/board-column.schema.js";
 import {
   createBoardColumnHandler,
+  deleteBoardColumnHandler,
   getBoardColumnHandler,
   listBoardColumnsHandler,
   updateBoardColumnHandler,
@@ -267,4 +269,11 @@ workspaceRouter.patch(
   validateRequest(updateBoardColumnSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   updateBoardColumnHandler,
+);
+workspaceRouter.delete(
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId",
+  authenticate,
+  validateRequest(deleteBoardColumnSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN"),
+  deleteBoardColumnHandler,
 );
