@@ -43,3 +43,18 @@ export const listBoardColumnsSchema = z.object({
 export type ListBoardColumnsParams = z.infer<
   typeof listBoardColumnsSchema
 >["params"];
+
+export const getBoardColumnSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+      projectId: z.uuid("Please provide a valid project ID"),
+      boardId: z.uuid("Please provide a valid board ID"),
+      columnId: z.uuid("Please provide a valid column ID"),
+    })
+    .strict(),
+});
+
+export type GetBoardColumnsParams = z.infer<
+  typeof getBoardColumnSchema
+>["params"];

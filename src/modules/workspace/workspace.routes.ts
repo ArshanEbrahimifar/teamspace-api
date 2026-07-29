@@ -57,10 +57,12 @@ import {
 } from "../board/board.controller.js";
 import {
   createBoardColumnSchema,
+  getBoardColumnSchema,
   listBoardColumnsSchema,
 } from "../board-column/board-column.schema.js";
 import {
   createBoardColumnHandler,
+  getBoardColumnHandler,
   listBoardColumnsHandler,
 } from "../board-column/board-column.controller.js";
 
@@ -233,6 +235,15 @@ workspaceRouter.delete(
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   deleteBoardHandler,
 );
+
+workspaceRouter.get(
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns",
+  authenticate,
+  validateRequest(listBoardColumnsSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  listBoardColumnsHandler,
+);
+
 workspaceRouter.post(
   "/:workspaceId/projects/:projectId/boards/:boardId/columns",
   authenticate,
@@ -240,10 +251,11 @@ workspaceRouter.post(
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   createBoardColumnHandler,
 );
+
 workspaceRouter.get(
-  "/:workspaceId/projects/:projectId/boards/:boardId/columns",
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId",
   authenticate,
-  validateRequest(listBoardColumnsSchema),
+  validateRequest(getBoardColumnSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
-  listBoardColumnsHandler,
+  getBoardColumnHandler,
 );

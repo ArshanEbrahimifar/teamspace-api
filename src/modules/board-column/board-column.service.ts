@@ -179,3 +179,72 @@ export const getBoardColumns = async (
 
   return board;
 };
+export const getBoardColumnById = async (
+  workspaceId: string,
+  projectId: string,
+  boardId: string,
+  columnId: string,
+) => {
+  const column = await prisma.boardColumn.findFirst({
+    where: {
+      id: columnId,
+      boardId,
+      deletedAt: null,
+
+      board: {
+        is: {
+          projectId,
+          deletedAt: null,
+
+          project: {
+            is: {
+              workspaceId,
+              deletedAt: null,
+            },
+          },
+        },
+      },
+    },
+
+    select: {
+      id: true,
+      name: true,
+      position: true,
+      createdAt: true,
+      updatedAt: true,
+
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+
+      board: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          position: true,
+
+          project: {
+            select: {
+              id: true,
+              name: true,
+              key: true,
+              status: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!column) {
+    throw new AppError("Board column not found", 404);
+  }
+
+  return column;
+};
