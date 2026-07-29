@@ -58,3 +58,23 @@ export const getBoardColumnSchema = z.object({
 export type GetBoardColumnsParams = z.infer<
   typeof getBoardColumnSchema
 >["params"];
+
+export const updateBoardColumnSchema = getBoardColumnSchema.extend({
+  body: z
+    .object({
+      name: z
+        .string()
+        .trim()
+        .min(2, "Column name must be at least 2 characters")
+        .max(100, "Column name cannot exceed 100 characters"),
+    })
+    .strict(),
+});
+
+export type UpdateBoardColumnParams = z.infer<
+  typeof updateBoardColumnSchema
+>["params"];
+
+export type UpdateBoardColumnInput = z.infer<
+  typeof updateBoardColumnSchema
+>["body"];

@@ -59,11 +59,13 @@ import {
   createBoardColumnSchema,
   getBoardColumnSchema,
   listBoardColumnsSchema,
+  updateBoardColumnSchema,
 } from "../board-column/board-column.schema.js";
 import {
   createBoardColumnHandler,
   getBoardColumnHandler,
   listBoardColumnsHandler,
+  updateBoardColumnHandler,
 } from "../board-column/board-column.controller.js";
 
 export const workspaceRouter = Router();
@@ -258,4 +260,11 @@ workspaceRouter.get(
   validateRequest(getBoardColumnSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   getBoardColumnHandler,
+);
+workspaceRouter.patch(
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId",
+  authenticate,
+  validateRequest(updateBoardColumnSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN"),
+  updateBoardColumnHandler,
 );

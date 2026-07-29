@@ -7,11 +7,14 @@ import type {
   CreateBoardColumnParams,
   GetBoardColumnsParams,
   ListBoardColumnsParams,
+  UpdateBoardColumnInput,
+  UpdateBoardColumnParams,
 } from "./board-column.schema.js";
 import {
   createBoardColumn,
   getBoardColumnById,
   getBoardColumns,
+  updateBoardColumn,
 } from "./board-column.service.js";
 
 export const createBoardColumnHandler: RequestHandler = async (req, res) => {
@@ -105,6 +108,54 @@ export const getBoardColumnHandler: RequestHandler = async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Board column retrieved successfully",
+
+    data: {
+      workspace: {
+        id: req.workspaceContext.workspace.id,
+        name: req.workspaceContext.workspace.name,
+      },
+
+      project: column.board.project,
+
+      board: {
+        id: column.board.id,
+        name: column.board.name,
+        description: column.board.description,
+        position: column.board.position,
+      },
+
+      column: {
+        id: column.id,
+        name: column.name,
+        position: column.position,
+        createdAt: column.createdAt,
+        updatedAt: column.updatedAt,
+        createdBy: column.createdBy,
+      },
+    },
+  });
+};
+export const updateBoardColumnHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params, body } = res.locals.validatedData as {
+    params: UpdateBoardColumnParams;
+    body: UpdateBoardColumnInput;
+  };
+
+  const column = await updateBoardColumn(
+    req.workspaceContext.workspace.id,
+    params.projectId,
+    params.boardId,
+    params.columnId,
+    body,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Board column updated successfully",
 
     data: {
       workspace: {

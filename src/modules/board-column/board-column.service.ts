@@ -1,7 +1,10 @@
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../shared/errors/app-error.js";
 
-import type { CreateBoardColumnInput } from "./board-column.schema.js";
+import type {
+  CreateBoardColumnInput,
+  UpdateBoardColumnInput,
+} from "./board-column.schema.js";
 
 export const createBoardColumn = async (
   workspaceId: string,
@@ -247,4 +250,106 @@ export const getBoardColumnById = async (
   }
 
   return column;
+};
+export const updateBoardColumn = async (
+  workspaceId: string,
+  projectId: string,
+  boardId: string,
+  columnId: string,
+  input: UpdateBoardColumnInput,
+) => {
+  return prisma.$transaction(async (tx) => {
+    const updatedColumn = await tx.boardColumn.updateMany({
+      where: {
+        id: columnId,
+        boardId,
+        deletedAt: null,
+
+        board: {
+          is: {
+            projectId,
+            deletedAt: null,
+
+            project: {
+              is: {
+                workspaceId,
+                deletedAt: null,
+              },
+            },
+          },
+        },
+      },
+
+      data: {
+        name: input.name,
+      },
+    });
+
+    if (updatedColumn.count !== 1) {
+      throw new AppError("Board column not found", 404);
+    }
+
+    const column = await tx.boardColumn.findFirst({
+      where: {
+        id: columnId,
+        boardId,
+        deletedAt: null,
+
+        board: {
+          is: {
+            projectId,
+            deletedAt: null,
+
+            project: {
+              is: {
+                workspaceId,
+                deletedAt: null,
+              },
+            },
+          },
+        },
+      },
+
+      select: {
+        id: true,
+        name: true,
+        position: true,
+        createdAt: true,
+        updatedAt: true,
+
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+
+        board: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            position: true,
+
+            project: {
+              select: {
+                id: true,
+                name: true,
+                key: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!column) {
+      throw new AppError("Board column not found", 404);
+    }
+
+    return column;
+  });
 };
