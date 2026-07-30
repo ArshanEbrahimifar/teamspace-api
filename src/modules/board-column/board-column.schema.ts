@@ -82,3 +82,42 @@ export type UpdateBoardColumnInput = z.infer<
 export const deleteBoardColumnSchema = getBoardColumnSchema;
 
 export type DeleteBoardColumnParams = GetBoardColumnsParams;
+
+export const reorderBoardColumnsSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+
+      projectId: z.uuid("Please provide a valid project ID"),
+
+      boardId: z.uuid("Please provide a valid board ID"),
+    })
+    .strict(),
+
+  body: z
+    .object({
+      columnIds: z
+        .array(z.uuid("Please provide valid column IDs"))
+        .min(1, "At least one column ID must be provided"),
+    })
+    .strict()
+    .superRefine((data, ctx) => {
+      const uniqueColumnIds = new Set(data.columnIds);
+
+      if (uniqueColumnIds.size !== data.columnIds.length) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["columnIds"],
+          message: "Column IDs must not contain duplicates",
+        });
+      }
+    }),
+});
+
+export type ReorderBoardColumnsParams = z.infer<
+  typeof reorderBoardColumnsSchema
+>["params"];
+
+export type ReorderBoardColumnsInput = z.infer<
+  typeof reorderBoardColumnsSchema
+>["body"];

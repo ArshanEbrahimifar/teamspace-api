@@ -3,6 +3,7 @@ import { AppError } from "../../shared/errors/app-error.js";
 
 import type {
   CreateBoardColumnInput,
+  ReorderBoardColumnsInput,
   UpdateBoardColumnInput,
 } from "./board-column.schema.js";
 
@@ -388,4 +389,157 @@ export const softDeleteBoardColumn = async (
   if (deletedColumn.count !== 1) {
     throw new AppError("Board column not found", 404);
   }
+};
+export const reorderBoardColumns = async (
+  workspaceId: string,
+  projectId: string,
+  boardId: string,
+  input: ReorderBoardColumnsInput,
+) => {
+  return prisma.$transaction(async (tx) => {
+    const board = await tx.board.findFirst({
+      where: {
+        id: boardId,
+        projectId,
+        deletedAt: null,
+
+        project: {
+          is: {
+            workspaceId,
+            deletedAt: null,
+          },
+        },
+      },
+
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        position: true,
+
+        project: {
+          select: {
+            id: true,
+            name: true,
+            key: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!board) {
+      throw new AppError("Board not found", 404);
+    }
+
+    const activeColumns = await tx.boardColumn.findMany({
+      where: {
+        boardId: board.id,
+        deletedAt: null,
+      },
+
+      select: {
+        id: true,
+      },
+    });
+
+    const activeColumnIds = new Set(activeColumns.map((column) => column.id));
+
+    const requestedColumnIds = new Set(input.columnIds);
+
+    const containsEveryActiveColumn =
+      activeColumnIds.size === requestedColumnIds.size &&
+      [...activeColumnIds].every((columnId) =>
+        requestedColumnIds.has(columnId),
+      );
+
+    if (!containsEveryActiveColumn) {
+      throw new AppError(
+        "Column order must include every active board column exactly once",
+        409,
+      );
+    }
+
+    const updateResults = await Promise.all(
+      input.columnIds.map((columnId, position) =>
+        tx.boardColumn.updateMany({
+          where: {
+            id: columnId,
+            boardId: board.id,
+            deletedAt: null,
+
+            board: {
+              is: {
+                projectId,
+                deletedAt: null,
+
+                project: {
+                  is: {
+                    workspaceId,
+                    deletedAt: null,
+                  },
+                },
+              },
+            },
+          },
+
+          data: {
+            position,
+          },
+        }),
+      ),
+    );
+
+    const hasFailedUpdate = updateResults.some((result) => result.count !== 1);
+
+    if (hasFailedUpdate) {
+      throw new AppError("Board columns changed while reordering", 409);
+    }
+
+    const columns = await tx.boardColumn.findMany({
+      where: {
+        boardId: board.id,
+        deletedAt: null,
+      },
+
+      orderBy: [
+        {
+          position: "asc",
+        },
+        {
+          id: "asc",
+        },
+      ],
+
+      select: {
+        id: true,
+        name: true,
+        position: true,
+        createdAt: true,
+        updatedAt: true,
+
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+
+    return {
+      project: board.project,
+
+      board: {
+        id: board.id,
+        name: board.name,
+        description: board.description,
+        position: board.position,
+      },
+
+      columns,
+    };
+  });
 };

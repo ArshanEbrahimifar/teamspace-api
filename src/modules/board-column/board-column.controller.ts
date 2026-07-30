@@ -8,6 +8,8 @@ import type {
   DeleteBoardColumnParams,
   GetBoardColumnsParams,
   ListBoardColumnsParams,
+  ReorderBoardColumnsInput,
+  ReorderBoardColumnsParams,
   UpdateBoardColumnInput,
   UpdateBoardColumnParams,
 } from "./board-column.schema.js";
@@ -15,6 +17,7 @@ import {
   createBoardColumn,
   getBoardColumnById,
   getBoardColumns,
+  reorderBoardColumns,
   softDeleteBoardColumn,
   updateBoardColumn,
 } from "./board-column.service.js";
@@ -202,4 +205,37 @@ export const deleteBoardColumnHandler: RequestHandler = async (req, res) => {
   );
 
   res.status(204).send();
+};
+export const reorderBoardColumnsHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params, body } = res.locals.validatedData as {
+    params: ReorderBoardColumnsParams;
+    body: ReorderBoardColumnsInput;
+  };
+
+  const result = await reorderBoardColumns(
+    req.workspaceContext.workspace.id,
+    params.projectId,
+    params.boardId,
+    body,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Board columns reordered successfully",
+
+    data: {
+      workspace: {
+        id: req.workspaceContext.workspace.id,
+        name: req.workspaceContext.workspace.name,
+      },
+
+      project: result.project,
+      board: result.board,
+      columns: result.columns,
+    },
+  });
 };

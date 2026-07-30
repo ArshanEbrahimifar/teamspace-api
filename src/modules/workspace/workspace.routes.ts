@@ -60,6 +60,7 @@ import {
   deleteBoardColumnSchema,
   getBoardColumnSchema,
   listBoardColumnsSchema,
+  reorderBoardColumnsSchema,
   updateBoardColumnSchema,
 } from "../board-column/board-column.schema.js";
 import {
@@ -67,6 +68,7 @@ import {
   deleteBoardColumnHandler,
   getBoardColumnHandler,
   listBoardColumnsHandler,
+  reorderBoardColumnsHandler,
   updateBoardColumnHandler,
 } from "../board-column/board-column.controller.js";
 
@@ -263,6 +265,15 @@ workspaceRouter.get(
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   getBoardColumnHandler,
 );
+
+workspaceRouter.patch(
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns/reorder",
+  authenticate,
+  validateRequest(reorderBoardColumnsSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN"),
+  reorderBoardColumnsHandler,
+);
+
 workspaceRouter.patch(
   "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId",
   authenticate,
