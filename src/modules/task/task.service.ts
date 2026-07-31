@@ -368,3 +368,100 @@ export const getColumnTasks = async (
     };
   });
 };
+export const getTaskById = async (
+  workspaceId: string,
+  projectId: string,
+  boardId: string,
+  columnId: string,
+  taskId: string,
+) => {
+  const task = await prisma.task.findFirst({
+    where: {
+      id: taskId,
+      columnId,
+      deletedAt: null,
+
+      column: {
+        is: {
+          boardId,
+          deletedAt: null,
+
+          board: {
+            is: {
+              projectId,
+              deletedAt: null,
+
+              project: {
+                is: {
+                  workspaceId,
+                  deletedAt: null,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      priority: true,
+      position: true,
+      dueDate: true,
+      createdAt: true,
+      updatedAt: true,
+
+      assignee: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+
+      column: {
+        select: {
+          id: true,
+          name: true,
+          position: true,
+
+          board: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              position: true,
+
+              project: {
+                select: {
+                  id: true,
+                  name: true,
+                  key: true,
+                  status: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!task) {
+    throw new AppError("Task not found", 404);
+  }
+
+  return task;
+};

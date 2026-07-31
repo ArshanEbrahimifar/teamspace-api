@@ -73,10 +73,12 @@ import {
 } from "../board-column/board-column.controller.js";
 import {
   createTaskSchema,
+  getTaskSchema,
   listColumnTasksSchema,
 } from "../task/task.schema.js";
 import {
   createTaskHandler,
+  getTaskHandler,
   listColumnTasksHandler,
 } from "../task/task.controller.js";
 
@@ -296,6 +298,15 @@ workspaceRouter.delete(
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   deleteBoardColumnHandler,
 );
+
+workspaceRouter.get(
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId/tasks",
+  authenticate,
+  validateRequest(listColumnTasksSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  listColumnTasksHandler,
+);
+
 workspaceRouter.post(
   "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId/tasks",
   authenticate,
@@ -303,10 +314,11 @@ workspaceRouter.post(
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   createTaskHandler,
 );
+
 workspaceRouter.get(
-  "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId/tasks",
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId/tasks/:taskId",
   authenticate,
-  validateRequest(listColumnTasksSchema),
+  validateRequest(getTaskSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
-  listColumnTasksHandler,
+  getTaskHandler,
 );

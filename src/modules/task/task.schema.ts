@@ -88,3 +88,21 @@ export type ListColumnTasksParams = z.infer<
 export type ListColumnTasksQuery = z.infer<
   typeof listColumnTasksSchema
 >["query"];
+
+export const getTaskSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+
+      projectId: z.uuid("Please provide a valid project ID"),
+
+      boardId: z.uuid("Please provide a valid board ID"),
+
+      columnId: z.uuid("Please provide a valid column ID"),
+
+      taskId: z.uuid("Please provide a valid task ID"),
+    })
+    .strict(),
+});
+
+export type GetTaskParams = z.infer<typeof getTaskSchema>["params"];

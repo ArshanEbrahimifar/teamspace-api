@@ -5,10 +5,11 @@ import { AppError } from "../../shared/errors/app-error.js";
 import type {
   CreateTaskInput,
   CreateTaskParams,
+  GetTaskParams,
   ListColumnTasksParams,
   ListColumnTasksQuery,
 } from "./task.schema.js";
-import { createTask, getColumnTasks } from "./task.service.js";
+import { createTask, getColumnTasks, getTaskById } from "./task.service.js";
 
 export const createTaskHandler: RequestHandler = async (req, res) => {
   if (!req.auth || !req.workspaceContext) {
@@ -79,6 +80,63 @@ export const listColumnTasksHandler: RequestHandler = async (req, res) => {
       column: result.column,
       tasks: result.tasks,
       pagination: result.pagination,
+    },
+  });
+};
+export const getTaskHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params } = res.locals.validatedData as {
+    params: GetTaskParams;
+  };
+
+  const task = await getTaskById(
+    req.workspaceContext.workspace.id,
+    params.projectId,
+    params.boardId,
+    params.columnId,
+    params.taskId,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Task retrieved successfully",
+
+    data: {
+      workspace: {
+        id: req.workspaceContext.workspace.id,
+        name: req.workspaceContext.workspace.name,
+      },
+
+      project: task.column.board.project,
+
+      board: {
+        id: task.column.board.id,
+        name: task.column.board.name,
+        description: task.column.board.description,
+        position: task.column.board.position,
+      },
+
+      column: {
+        id: task.column.id,
+        name: task.column.name,
+        position: task.column.position,
+      },
+
+      task: {
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        position: task.position,
+        dueDate: task.dueDate,
+        createdAt: task.createdAt,
+        updatedAt: task.updatedAt,
+        assignee: task.assignee,
+        createdBy: task.createdBy,
+      },
     },
   });
 };
