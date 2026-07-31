@@ -52,3 +52,39 @@ export const createTaskSchema = z.object({
 export type CreateTaskParams = z.infer<typeof createTaskSchema>["params"];
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>["body"];
+
+export const listColumnTasksSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+
+      projectId: z.uuid("Please provide a valid project ID"),
+
+      boardId: z.uuid("Please provide a valid board ID"),
+
+      columnId: z.uuid("Please provide a valid column ID"),
+    })
+    .strict(),
+
+  query: z
+    .object({
+      page: z.coerce.number().int().min(1).default(1),
+
+      limit: z.coerce.number().int().min(1).max(100).default(20),
+
+      priority: taskPrioritySchema.optional(),
+
+      assigneeId: z.uuid("Please provide a valid assignee ID").optional(),
+
+      dueStatus: z.enum(["OVERDUE", "UPCOMING", "NO_DUE_DATE"]).optional(),
+    })
+    .strict(),
+});
+
+export type ListColumnTasksParams = z.infer<
+  typeof listColumnTasksSchema
+>["params"];
+
+export type ListColumnTasksQuery = z.infer<
+  typeof listColumnTasksSchema
+>["query"];

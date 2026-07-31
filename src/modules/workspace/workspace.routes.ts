@@ -71,8 +71,14 @@ import {
   reorderBoardColumnsHandler,
   updateBoardColumnHandler,
 } from "../board-column/board-column.controller.js";
-import { createTaskSchema } from "../task/task.schema.js";
-import { createTaskHandler } from "../task/task.controller.js";
+import {
+  createTaskSchema,
+  listColumnTasksSchema,
+} from "../task/task.schema.js";
+import {
+  createTaskHandler,
+  listColumnTasksHandler,
+} from "../task/task.controller.js";
 
 export const workspaceRouter = Router();
 
@@ -296,4 +302,11 @@ workspaceRouter.post(
   validateRequest(createTaskSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   createTaskHandler,
+);
+workspaceRouter.get(
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId/tasks",
+  authenticate,
+  validateRequest(listColumnTasksSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  listColumnTasksHandler,
 );

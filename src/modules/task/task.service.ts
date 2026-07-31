@@ -1,7 +1,8 @@
 import { prisma } from "../../config/database.js";
+import type { Prisma } from "../../generated/prisma/client.js";
 import { AppError } from "../../shared/errors/app-error.js";
 
-import type { CreateTaskInput } from "./task.schema.js";
+import type { CreateTaskInput, ListColumnTasksQuery } from "./task.schema.js";
 
 export const createTask = async (
   workspaceId: string,
@@ -181,6 +182,189 @@ export const createTask = async (
       },
 
       task,
+    };
+  });
+};
+export const getColumnTasks = async (
+  workspaceId: string,
+  projectId: string,
+  boardId: string,
+  columnId: string,
+  query: ListColumnTasksQuery,
+) => {
+  return prisma.$transaction(async (tx) => {
+    const column = await tx.boardColumn.findFirst({
+      where: {
+        id: columnId,
+        boardId,
+        deletedAt: null,
+
+        board: {
+          is: {
+            projectId,
+            deletedAt: null,
+
+            project: {
+              is: {
+                workspaceId,
+                deletedAt: null,
+              },
+            },
+          },
+        },
+      },
+
+      select: {
+        id: true,
+        name: true,
+        position: true,
+
+        board: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            position: true,
+
+            project: {
+              select: {
+                id: true,
+                name: true,
+                key: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!column) {
+      throw new AppError("Board column not found", 404);
+    }
+
+    const now = new Date();
+
+    const taskWhere = {
+      columnId: column.id,
+      deletedAt: null,
+
+      ...(query.priority !== undefined
+        ? {
+            priority: query.priority,
+          }
+        : {}),
+
+      ...(query.assigneeId !== undefined
+        ? {
+            assigneeId: query.assigneeId,
+          }
+        : {}),
+
+      ...(query.dueStatus === "OVERDUE"
+        ? {
+            dueDate: {
+              lt: now,
+            },
+          }
+        : {}),
+
+      ...(query.dueStatus === "UPCOMING"
+        ? {
+            dueDate: {
+              gte: now,
+            },
+          }
+        : {}),
+
+      ...(query.dueStatus === "NO_DUE_DATE"
+        ? {
+            dueDate: null,
+          }
+        : {}),
+    } satisfies Prisma.TaskWhereInput;
+
+    const skip = (query.page - 1) * query.limit;
+
+    const [tasks, totalItems] = await Promise.all([
+      tx.task.findMany({
+        where: taskWhere,
+
+        skip,
+        take: query.limit,
+
+        orderBy: [
+          {
+            position: "asc",
+          },
+          {
+            id: "asc",
+          },
+        ],
+
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          priority: true,
+          position: true,
+          dueDate: true,
+          createdAt: true,
+          updatedAt: true,
+
+          assignee: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      }),
+
+      tx.task.count({
+        where: taskWhere,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / query.limit);
+
+    return {
+      project: column.board.project,
+
+      board: {
+        id: column.board.id,
+        name: column.board.name,
+        description: column.board.description,
+        position: column.board.position,
+      },
+
+      column: {
+        id: column.id,
+        name: column.name,
+        position: column.position,
+      },
+
+      tasks,
+
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        totalItems,
+        totalPages,
+        hasNextPage: query.page < totalPages,
+        hasPreviousPage: query.page > 1,
+      },
     };
   });
 };
