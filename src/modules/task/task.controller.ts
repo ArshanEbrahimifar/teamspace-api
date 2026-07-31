@@ -5,6 +5,7 @@ import { AppError } from "../../shared/errors/app-error.js";
 import type {
   CreateTaskInput,
   CreateTaskParams,
+  DeleteTaskParams,
   GetTaskParams,
   ListColumnTasksParams,
   ListColumnTasksQuery,
@@ -15,6 +16,7 @@ import {
   createTask,
   getColumnTasks,
   getTaskById,
+  softDeleteTask,
   updateTask,
 } from "./task.service.js";
 
@@ -205,4 +207,23 @@ export const updateTaskHandler: RequestHandler = async (req, res) => {
       },
     },
   });
+};
+export const deleteTaskHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params } = res.locals.validatedData as {
+    params: DeleteTaskParams;
+  };
+
+  await softDeleteTask(
+    req.workspaceContext.workspace.id,
+    params.projectId,
+    params.boardId,
+    params.columnId,
+    params.taskId,
+  );
+
+  res.status(204).send();
 };

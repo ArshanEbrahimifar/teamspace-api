@@ -653,3 +653,47 @@ export const updateTask = async (
     return task;
   });
 };
+export const softDeleteTask = async (
+  workspaceId: string,
+  projectId: string,
+  boardId: string,
+  columnId: string,
+  taskId: string,
+): Promise<void> => {
+  const deletedTask = await prisma.task.updateMany({
+    where: {
+      id: taskId,
+      columnId,
+      deletedAt: null,
+
+      column: {
+        is: {
+          boardId,
+          deletedAt: null,
+
+          board: {
+            is: {
+              projectId,
+              deletedAt: null,
+
+              project: {
+                is: {
+                  workspaceId,
+                  deletedAt: null,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+
+  if (deletedTask.count !== 1) {
+    throw new AppError("Task not found", 404);
+  }
+};

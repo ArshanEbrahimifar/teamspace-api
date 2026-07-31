@@ -73,12 +73,14 @@ import {
 } from "../board-column/board-column.controller.js";
 import {
   createTaskSchema,
+  deleteTaskSchema,
   getTaskSchema,
   listColumnTasksSchema,
   updateTaskSchema,
 } from "../task/task.schema.js";
 import {
   createTaskHandler,
+  deleteTaskHandler,
   getTaskHandler,
   listColumnTasksHandler,
   updateTaskHandler,
@@ -330,4 +332,11 @@ workspaceRouter.patch(
   validateRequest(updateTaskSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   updateTaskHandler,
+);
+workspaceRouter.delete(
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId/tasks/:taskId",
+  authenticate,
+  validateRequest(deleteTaskSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  deleteTaskHandler,
 );

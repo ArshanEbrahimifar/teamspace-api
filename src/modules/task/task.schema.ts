@@ -143,3 +143,7 @@ export const updateTaskSchema = getTaskSchema.extend({
 export type UpdateTaskParams = z.infer<typeof updateTaskSchema>["params"];
 
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>["body"];
+
+export const deleteTaskSchema = getTaskSchema;
+
+export type DeleteTaskParams = GetTaskParams;
