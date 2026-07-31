@@ -176,3 +176,44 @@ export const moveTaskSchema = z.object({
 export type MoveTaskParams = z.infer<typeof moveTaskSchema>["params"];
 
 export type MoveTaskInput = z.infer<typeof moveTaskSchema>["body"];
+
+export const reorderColumnTasksSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+
+      projectId: z.uuid("Please provide a valid project ID"),
+
+      boardId: z.uuid("Please provide a valid board ID"),
+
+      columnId: z.uuid("Please provide a valid column ID"),
+    })
+    .strict(),
+
+  body: z
+    .object({
+      taskIds: z
+        .array(z.uuid("Please provide valid task IDs"))
+        .min(1, "At least one task ID must be provided"),
+    })
+    .strict()
+    .superRefine((data, ctx) => {
+      const uniqueTaskIds = new Set(data.taskIds);
+
+      if (uniqueTaskIds.size !== data.taskIds.length) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["taskIds"],
+          message: "Task IDs must not contain duplicates",
+        });
+      }
+    }),
+});
+
+export type ReorderColumnTasksParams = z.infer<
+  typeof reorderColumnTasksSchema
+>["params"];
+
+export type ReorderColumnTasksInput = z.infer<
+  typeof reorderColumnTasksSchema
+>["body"];

@@ -6,6 +6,7 @@ import type {
   CreateTaskInput,
   ListColumnTasksQuery,
   MoveTaskInput,
+  ReorderColumnTasksInput,
   UpdateTaskInput,
 } from "./task.schema.js";
 
@@ -1040,6 +1041,194 @@ export const moveTask = async (
       },
 
       task: movedTask,
+    };
+  });
+};
+export const reorderColumnTasks = async (
+  workspaceId: string,
+  projectId: string,
+  boardId: string,
+  columnId: string,
+  input: ReorderColumnTasksInput,
+) => {
+  return prisma.$transaction(async (tx) => {
+    const column = await tx.boardColumn.findFirst({
+      where: {
+        id: columnId,
+        boardId,
+        deletedAt: null,
+
+        board: {
+          is: {
+            projectId,
+            deletedAt: null,
+
+            project: {
+              is: {
+                workspaceId,
+                deletedAt: null,
+              },
+            },
+          },
+        },
+      },
+
+      select: {
+        id: true,
+        name: true,
+        position: true,
+
+        board: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            position: true,
+
+            project: {
+              select: {
+                id: true,
+                name: true,
+                key: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!column) {
+      throw new AppError("Board column not found", 404);
+    }
+
+    const activeTasks = await tx.task.findMany({
+      where: {
+        columnId: column.id,
+        deletedAt: null,
+      },
+
+      select: {
+        id: true,
+      },
+    });
+
+    const activeTaskIds = new Set(activeTasks.map((task) => task.id));
+
+    const requestedTaskIds = new Set(input.taskIds);
+
+    const containsEveryActiveTask =
+      activeTaskIds.size === requestedTaskIds.size &&
+      [...activeTaskIds].every((taskId) => requestedTaskIds.has(taskId));
+
+    if (!containsEveryActiveTask) {
+      throw new AppError(
+        "Task order must include every active column task exactly once",
+        409,
+      );
+    }
+
+    const updateResults = await Promise.all(
+      input.taskIds.map((taskId, position) =>
+        tx.task.updateMany({
+          where: {
+            id: taskId,
+            columnId: column.id,
+            deletedAt: null,
+
+            column: {
+              is: {
+                boardId,
+                deletedAt: null,
+
+                board: {
+                  is: {
+                    projectId,
+                    deletedAt: null,
+
+                    project: {
+                      is: {
+                        workspaceId,
+                        deletedAt: null,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+
+          data: {
+            position,
+          },
+        }),
+      ),
+    );
+
+    const hasFailedUpdate = updateResults.some((result) => result.count !== 1);
+
+    if (hasFailedUpdate) {
+      throw new AppError("Tasks changed while reordering", 409);
+    }
+
+    const tasks = await tx.task.findMany({
+      where: {
+        columnId: column.id,
+        deletedAt: null,
+      },
+
+      orderBy: [
+        {
+          position: "asc",
+        },
+        {
+          id: "asc",
+        },
+      ],
+
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        priority: true,
+        position: true,
+        dueDate: true,
+        createdAt: true,
+        updatedAt: true,
+
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+
+    return {
+      project: column.board.project,
+
+      board: {
+        id: column.board.id,
+        name: column.board.name,
+        description: column.board.description,
+        position: column.board.position,
+      },
+
+      column: { id: column.id, name: column.name, position: column.position },
+
+      tasks,
     };
   });
 };

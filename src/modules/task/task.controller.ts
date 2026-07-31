@@ -11,6 +11,8 @@ import type {
   ListColumnTasksQuery,
   MoveTaskInput,
   MoveTaskParams,
+  ReorderColumnTasksInput,
+  ReorderColumnTasksParams,
   UpdateTaskInput,
   UpdateTaskParams,
 } from "./task.schema.js";
@@ -19,6 +21,7 @@ import {
   getColumnTasks,
   getTaskById,
   moveTask,
+  reorderColumnTasks,
   softDeleteTask,
   updateTask,
 } from "./task.service.js";
@@ -291,6 +294,41 @@ export const moveTaskHandler: RequestHandler = async (req, res) => {
         assignee: movedTask.assignee,
         createdBy: movedTask.createdBy,
       },
+    },
+  });
+};
+export const reorderColumnTasksHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params, body } = res.locals.validatedData as {
+    params: ReorderColumnTasksParams;
+    body: ReorderColumnTasksInput;
+  };
+
+  const result = await reorderColumnTasks(
+    req.workspaceContext.workspace.id,
+    params.projectId,
+    params.boardId,
+    params.columnId,
+    body,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Column tasks reordered successfully",
+
+    data: {
+      workspace: {
+        id: req.workspaceContext.workspace.id,
+        name: req.workspaceContext.workspace.name,
+      },
+
+      project: result.project,
+      board: result.board,
+      column: result.column,
+      tasks: result.tasks,
     },
   });
 };

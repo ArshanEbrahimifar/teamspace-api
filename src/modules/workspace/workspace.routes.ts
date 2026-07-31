@@ -77,6 +77,7 @@ import {
   getTaskSchema,
   listColumnTasksSchema,
   moveTaskSchema,
+  reorderColumnTasksSchema,
   updateTaskSchema,
 } from "../task/task.schema.js";
 import {
@@ -85,6 +86,7 @@ import {
   getTaskHandler,
   listColumnTasksHandler,
   moveTaskHandler,
+  reorderColumnTasksHandler,
   updateTaskHandler,
 } from "../task/task.controller.js";
 
@@ -328,6 +330,15 @@ workspaceRouter.get(
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   getTaskHandler,
 );
+
+workspaceRouter.patch(
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId/tasks/reorder",
+  authenticate,
+  validateRequest(reorderColumnTasksSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  reorderColumnTasksHandler,
+);
+
 workspaceRouter.patch(
   "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId/tasks/:taskId",
   authenticate,
