@@ -71,6 +71,8 @@ import {
   reorderBoardColumnsHandler,
   updateBoardColumnHandler,
 } from "../board-column/board-column.controller.js";
+import { createTaskSchema } from "../task/task.schema.js";
+import { createTaskHandler } from "../task/task.controller.js";
 
 export const workspaceRouter = Router();
 
@@ -287,4 +289,11 @@ workspaceRouter.delete(
   validateRequest(deleteBoardColumnSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   deleteBoardColumnHandler,
+);
+workspaceRouter.post(
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId/tasks",
+  authenticate,
+  validateRequest(createTaskSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  createTaskHandler,
 );
