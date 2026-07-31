@@ -75,11 +75,13 @@ import {
   createTaskSchema,
   getTaskSchema,
   listColumnTasksSchema,
+  updateTaskSchema,
 } from "../task/task.schema.js";
 import {
   createTaskHandler,
   getTaskHandler,
   listColumnTasksHandler,
+  updateTaskHandler,
 } from "../task/task.controller.js";
 
 export const workspaceRouter = Router();
@@ -321,4 +323,11 @@ workspaceRouter.get(
   validateRequest(getTaskSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   getTaskHandler,
+);
+workspaceRouter.patch(
+  "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId/tasks/:taskId",
+  authenticate,
+  validateRequest(updateTaskSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  updateTaskHandler,
 );

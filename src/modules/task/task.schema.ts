@@ -106,3 +106,40 @@ export const getTaskSchema = z.object({
 });
 
 export type GetTaskParams = z.infer<typeof getTaskSchema>["params"];
+
+export const updateTaskSchema = getTaskSchema.extend({
+  body: z
+    .object({
+      title: z
+        .string()
+        .trim()
+        .min(2, "Task title must be at least 2 characters")
+        .max(200, "Task title cannot exceed 200 characters")
+        .optional(),
+
+      description: z
+        .string()
+        .trim()
+        .min(1, "Task description cannot be empty")
+        .max(5000, "Task description cannot exceed 5000 characters")
+        .nullable()
+        .optional(),
+
+      priority: taskPrioritySchema.optional(),
+
+      dueDate: taskDueDateSchema.nullable().optional(),
+
+      assigneeId: z
+        .uuid("Please provide a valid assignee ID")
+        .nullable()
+        .optional(),
+    })
+    .strict()
+    .refine((data) => Object.keys(data).length > 0, {
+      message: "At least one task field must be provided",
+    }),
+});
+
+export type UpdateTaskParams = z.infer<typeof updateTaskSchema>["params"];
+
+export type UpdateTaskInput = z.infer<typeof updateTaskSchema>["body"];

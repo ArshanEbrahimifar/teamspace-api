@@ -2,7 +2,11 @@ import { prisma } from "../../config/database.js";
 import type { Prisma } from "../../generated/prisma/client.js";
 import { AppError } from "../../shared/errors/app-error.js";
 
-import type { CreateTaskInput, ListColumnTasksQuery } from "./task.schema.js";
+import type {
+  CreateTaskInput,
+  ListColumnTasksQuery,
+  UpdateTaskInput,
+} from "./task.schema.js";
 
 export const createTask = async (
   workspaceId: string,
@@ -464,4 +468,188 @@ export const getTaskById = async (
   }
 
   return task;
+};
+export const updateTask = async (
+  workspaceId: string,
+  projectId: string,
+  boardId: string,
+  columnId: string,
+  taskId: string,
+  input: UpdateTaskInput,
+) => {
+  return prisma.$transaction(async (tx) => {
+    if (input.assigneeId !== undefined && input.assigneeId !== null) {
+      const assigneeMembership = await tx.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId: input.assigneeId,
+          },
+        },
+
+        select: {
+          id: true,
+        },
+      });
+
+      if (!assigneeMembership) {
+        throw new AppError("Assignee must be a member of the workspace", 400);
+      }
+    }
+
+    const updatedTask = await tx.task.updateMany({
+      where: {
+        id: taskId,
+        columnId,
+        deletedAt: null,
+
+        column: {
+          is: {
+            boardId,
+            deletedAt: null,
+
+            board: {
+              is: {
+                projectId,
+                deletedAt: null,
+
+                project: {
+                  is: {
+                    workspaceId,
+                    deletedAt: null,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      data: {
+        ...(input.title !== undefined
+          ? {
+              title: input.title,
+            }
+          : {}),
+
+        ...(input.description !== undefined
+          ? {
+              description: input.description,
+            }
+          : {}),
+
+        ...(input.priority !== undefined
+          ? {
+              priority: input.priority,
+            }
+          : {}),
+
+        ...(input.dueDate !== undefined
+          ? {
+              dueDate: input.dueDate,
+            }
+          : {}),
+
+        ...(input.assigneeId !== undefined
+          ? {
+              assigneeId: input.assigneeId,
+            }
+          : {}),
+      },
+    });
+
+    if (updatedTask.count !== 1) {
+      throw new AppError("Task not found", 404);
+    }
+
+    const task = await tx.task.findFirst({
+      where: {
+        id: taskId,
+        columnId,
+        deletedAt: null,
+
+        column: {
+          is: {
+            boardId,
+            deletedAt: null,
+
+            board: {
+              is: {
+                projectId,
+                deletedAt: null,
+
+                project: {
+                  is: {
+                    workspaceId,
+                    deletedAt: null,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        priority: true,
+        position: true,
+        dueDate: true,
+        createdAt: true,
+        updatedAt: true,
+
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+
+        column: {
+          select: {
+            id: true,
+            name: true,
+            position: true,
+
+            board: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                position: true,
+
+                project: {
+                  select: {
+                    id: true,
+                    name: true,
+                    key: true,
+                    status: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!task) {
+      throw new AppError("Task not found", 404);
+    }
+
+    return task;
+  });
 };
