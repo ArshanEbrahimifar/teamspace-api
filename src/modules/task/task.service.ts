@@ -5,6 +5,7 @@ import { AppError } from "../../shared/errors/app-error.js";
 import type {
   CreateTaskInput,
   ListColumnTasksQuery,
+  MoveTaskInput,
   UpdateTaskInput,
 } from "./task.schema.js";
 
@@ -696,4 +697,349 @@ export const softDeleteTask = async (
   if (deletedTask.count !== 1) {
     throw new AppError("Task not found", 404);
   }
+};
+export const moveTask = async (
+  workspaceId: string,
+  projectId: string,
+  boardId: string,
+  taskId: string,
+  input: MoveTaskInput,
+) => {
+  return prisma.$transaction(async (tx) => {
+    const task = await tx.task.findFirst({
+      where: {
+        id: taskId,
+        deletedAt: null,
+
+        column: {
+          is: {
+            boardId,
+            deletedAt: null,
+
+            board: {
+              is: {
+                projectId,
+                deletedAt: null,
+
+                project: {
+                  is: {
+                    workspaceId,
+                    deletedAt: null,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      select: {
+        id: true,
+        columnId: true,
+        position: true,
+
+        column: {
+          select: {
+            id: true,
+            name: true,
+            position: true,
+
+            board: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                position: true,
+
+                project: {
+                  select: {
+                    id: true,
+                    name: true,
+                    key: true,
+                    status: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!task) {
+      throw new AppError("Task not found", 404);
+    }
+
+    const targetColumn = await tx.boardColumn.findFirst({
+      where: {
+        id: input.targetColumnId,
+        boardId,
+        deletedAt: null,
+
+        board: {
+          is: {
+            projectId,
+            deletedAt: null,
+
+            project: {
+              is: {
+                workspaceId,
+                deletedAt: null,
+              },
+            },
+          },
+        },
+      },
+
+      select: {
+        id: true,
+        name: true,
+        position: true,
+      },
+    });
+
+    if (!targetColumn) {
+      throw new AppError("Target board column not found", 404);
+    }
+
+    const sourceTasks = await tx.task.findMany({
+      where: {
+        columnId: task.columnId,
+        deletedAt: null,
+
+        id: {
+          not: task.id,
+        },
+      },
+
+      orderBy: [
+        {
+          position: "asc",
+        },
+        {
+          id: "asc",
+        },
+      ],
+
+      select: {
+        id: true,
+      },
+    });
+
+    const updateTaskLocation = async (
+      currentTaskId: string,
+      expectedColumnId: string,
+      nextColumnId: string,
+      position: number,
+    ): Promise<void> => {
+      const result = await tx.task.updateMany({
+        where: {
+          id: currentTaskId,
+          columnId: expectedColumnId,
+          deletedAt: null,
+
+          column: {
+            is: {
+              boardId,
+              deletedAt: null,
+
+              board: {
+                is: {
+                  projectId,
+                  deletedAt: null,
+
+                  project: {
+                    is: {
+                      workspaceId,
+                      deletedAt: null,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+
+        data: {
+          columnId: nextColumnId,
+          position,
+        },
+      });
+
+      if (result.count !== 1) {
+        throw new AppError("Tasks changed while moving", 409);
+      }
+    };
+
+    const movedWithinSameColumn = task.columnId === targetColumn.id;
+
+    if (movedWithinSameColumn) {
+      const orderedTaskIds = sourceTasks.map((sourceTask) => sourceTask.id);
+
+      if (input.targetPosition > orderedTaskIds.length) {
+        throw new AppError("Target position is out of range", 409);
+      }
+
+      orderedTaskIds.splice(input.targetPosition, 0, task.id);
+
+      for (const [position, currentTaskId] of orderedTaskIds.entries()) {
+        await updateTaskLocation(
+          currentTaskId,
+          task.columnId,
+          task.columnId,
+          position,
+        );
+      }
+    } else {
+      const targetTasks = await tx.task.findMany({
+        where: {
+          columnId: targetColumn.id,
+          deletedAt: null,
+        },
+
+        orderBy: [
+          {
+            position: "asc",
+          },
+          {
+            id: "asc",
+          },
+        ],
+
+        select: {
+          id: true,
+        },
+      });
+
+      if (input.targetPosition > targetTasks.length) {
+        throw new AppError("Target position is out of range", 409);
+      }
+
+      const sourceTaskIds = sourceTasks.map((sourceTask) => sourceTask.id);
+
+      const targetTaskIds = targetTasks.map((targetTask) => targetTask.id);
+
+      targetTaskIds.splice(input.targetPosition, 0, task.id);
+
+      for (const [position, sourceTaskId] of sourceTaskIds.entries()) {
+        await updateTaskLocation(
+          sourceTaskId,
+          task.columnId,
+          task.columnId,
+          position,
+        );
+      }
+
+      for (const [position, targetTaskId] of targetTaskIds.entries()) {
+        const isMovedTask = targetTaskId === task.id;
+
+        await updateTaskLocation(
+          targetTaskId,
+          isMovedTask ? task.columnId : targetColumn.id,
+          targetColumn.id,
+          position,
+        );
+      }
+    }
+
+    const movedTask = await tx.task.findFirst({
+      where: {
+        id: task.id,
+        columnId: targetColumn.id,
+        deletedAt: null,
+
+        column: {
+          is: {
+            boardId,
+            deletedAt: null,
+
+            board: {
+              is: {
+                projectId,
+                deletedAt: null,
+
+                project: {
+                  is: {
+                    workspaceId,
+                    deletedAt: null,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        priority: true,
+        position: true,
+        dueDate: true,
+        createdAt: true,
+        updatedAt: true,
+
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+
+        column: {
+          select: {
+            id: true,
+            name: true,
+            position: true,
+
+            board: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                position: true,
+
+                project: {
+                  select: {
+                    id: true,
+                    name: true,
+                    key: true,
+                    status: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!movedTask) {
+      throw new AppError("Task not found", 404);
+    }
+
+    return {
+      movedWithinSameColumn,
+
+      previousColumn: {
+        id: task.column.id,
+        name: task.column.name,
+        position: task.column.position,
+      },
+
+      task: movedTask,
+    };
+  });
 };

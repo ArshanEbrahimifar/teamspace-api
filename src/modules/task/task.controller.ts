@@ -9,6 +9,8 @@ import type {
   GetTaskParams,
   ListColumnTasksParams,
   ListColumnTasksQuery,
+  MoveTaskInput,
+  MoveTaskParams,
   UpdateTaskInput,
   UpdateTaskParams,
 } from "./task.schema.js";
@@ -16,6 +18,7 @@ import {
   createTask,
   getColumnTasks,
   getTaskById,
+  moveTask,
   softDeleteTask,
   updateTask,
 } from "./task.service.js";
@@ -226,4 +229,68 @@ export const deleteTaskHandler: RequestHandler = async (req, res) => {
   );
 
   res.status(204).send();
+};
+export const moveTaskHandler: RequestHandler = async (req, res) => {
+  if (!req.workspaceContext) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const { params, body } = res.locals.validatedData as {
+    params: MoveTaskParams;
+    body: MoveTaskInput;
+  };
+
+  const result = await moveTask(
+    req.workspaceContext.workspace.id,
+    params.projectId,
+    params.boardId,
+    params.taskId,
+    body,
+  );
+
+  const movedTask = result.task;
+
+  res.status(200).json({
+    success: true,
+    message: "Task moved successfully",
+
+    data: {
+      workspace: {
+        id: req.workspaceContext.workspace.id,
+        name: req.workspaceContext.workspace.name,
+      },
+
+      project: movedTask.column.board.project,
+
+      board: {
+        id: movedTask.column.board.id,
+        name: movedTask.column.board.name,
+        description: movedTask.column.board.description,
+        position: movedTask.column.board.position,
+      },
+
+      movedWithinSameColumn: result.movedWithinSameColumn,
+
+      previousColumn: result.previousColumn,
+
+      targetColumn: {
+        id: movedTask.column.id,
+        name: movedTask.column.name,
+        position: movedTask.column.position,
+      },
+
+      task: {
+        id: movedTask.id,
+        title: movedTask.title,
+        description: movedTask.description,
+        priority: movedTask.priority,
+        position: movedTask.position,
+        dueDate: movedTask.dueDate,
+        createdAt: movedTask.createdAt,
+        updatedAt: movedTask.updatedAt,
+        assignee: movedTask.assignee,
+        createdBy: movedTask.createdBy,
+      },
+    },
+  });
 };

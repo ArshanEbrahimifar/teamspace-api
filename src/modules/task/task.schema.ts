@@ -147,3 +147,32 @@ export type UpdateTaskInput = z.infer<typeof updateTaskSchema>["body"];
 export const deleteTaskSchema = getTaskSchema;
 
 export type DeleteTaskParams = GetTaskParams;
+
+export const moveTaskSchema = z.object({
+  params: z
+    .object({
+      workspaceId: z.uuid("Please provide a valid workspace ID"),
+
+      projectId: z.uuid("Please provide a valid project ID"),
+
+      boardId: z.uuid("Please provide a valid board ID"),
+
+      taskId: z.uuid("Please provide a valid task ID"),
+    })
+    .strict(),
+
+  body: z
+    .object({
+      targetColumnId: z.uuid("Please provide a valid target column ID"),
+
+      targetPosition: z
+        .number()
+        .int()
+        .min(0, "Target position cannot be negative"),
+    })
+    .strict(),
+});
+
+export type MoveTaskParams = z.infer<typeof moveTaskSchema>["params"];
+
+export type MoveTaskInput = z.infer<typeof moveTaskSchema>["body"];

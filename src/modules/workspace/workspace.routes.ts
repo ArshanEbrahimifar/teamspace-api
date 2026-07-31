@@ -76,6 +76,7 @@ import {
   deleteTaskSchema,
   getTaskSchema,
   listColumnTasksSchema,
+  moveTaskSchema,
   updateTaskSchema,
 } from "../task/task.schema.js";
 import {
@@ -83,6 +84,7 @@ import {
   deleteTaskHandler,
   getTaskHandler,
   listColumnTasksHandler,
+  moveTaskHandler,
   updateTaskHandler,
 } from "../task/task.controller.js";
 
@@ -339,4 +341,11 @@ workspaceRouter.delete(
   validateRequest(deleteTaskSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   deleteTaskHandler,
+);
+workspaceRouter.patch(
+  "/:workspaceId/projects/:projectId/boards/:boardId/tasks/:taskId/move",
+  authenticate,
+  validateRequest(moveTaskSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  moveTaskHandler,
 );
