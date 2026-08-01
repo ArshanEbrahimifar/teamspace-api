@@ -1,5 +1,6 @@
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../shared/errors/app-error.js";
+import { recordActivity } from "../activity/activity.service.js";
 import type { CreateBoardInput, UpdateBoardInput } from "./board.schema.js";
 
 export const createBoard = async (
@@ -79,6 +80,23 @@ export const createBoard = async (
             avatarUrl: true,
           },
         },
+      },
+    });
+
+    await recordActivity(tx, {
+      workspaceId,
+      actorId: createdById,
+      action: "BOARD_CREATED",
+      entityType: "BOARD",
+      entityId: board.id,
+      message: `Created board "${board.name}"`,
+
+      metadata: {
+        boardName: board.name,
+        description: board.description,
+        position: board.position,
+        projectId: project.id,
+        projectName: project.name,
       },
     });
 

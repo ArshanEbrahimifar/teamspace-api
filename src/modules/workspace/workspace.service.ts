@@ -4,6 +4,7 @@ import type { WorkspaceRole } from "../../generated/prisma/enums.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { createInvitationToken } from "../../shared/utils/invitation-token.js";
 import { generateWorkspaceSlug } from "../../shared/utils/slug.js";
+import { recordActivity } from "../activity/activity.service.js";
 
 import type {
   CreateWorkspaceInput,
@@ -53,6 +54,19 @@ export const createWorkspace = async (
         id: true,
         role: true,
         joinedAt: true,
+      },
+    });
+
+    await recordActivity(tx, {
+      workspaceId: workspace.id,
+      actorId: ownerUserId,
+      action: "WORKSPACE_CREATED",
+      entityType: "WORKSPACE",
+      entityId: workspace.id,
+      message: `Created workspace "${workspace.name}"`,
+
+      metadata: {
+        workspaceName: workspace.name,
       },
     });
 
@@ -444,6 +458,20 @@ export const createWorkspaceInvitation = async (
 
           select: invitationSelect,
         });
+
+    await recordActivity(tx, {
+      workspaceId,
+      actorId: invitedById,
+      action: "MEMBER_INVITED",
+      entityType: "WORKSPACE_INVITATION",
+      entityId: invitation.id,
+      message: `Invited "${invitation.email}" to the workspace`,
+
+      metadata: {
+        invitationEmail: invitation.email,
+        expiresAt: invitation.expiresAt.toISOString(),
+      },
+    });
 
     return {
       invitation,

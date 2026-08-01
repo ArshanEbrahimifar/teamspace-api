@@ -1,5 +1,6 @@
 import { prisma } from "../../config/database.js";
 import { AppError } from "../../shared/errors/app-error.js";
+import { recordActivity } from "../activity/activity.service.js";
 
 import type {
   CreateBoardColumnInput,
@@ -93,6 +94,24 @@ export const createBoardColumn = async (
             avatarUrl: true,
           },
         },
+      },
+    });
+
+    await recordActivity(tx, {
+      workspaceId,
+      actorId: createdById,
+      action: "COLUMN_CREATED",
+      entityType: "BOARD_COLUMN",
+      entityId: column.id,
+      message: `Created column "${column.name}"`,
+
+      metadata: {
+        columnName: column.name,
+        position: column.position,
+        boardId: board.id,
+        boardName: board.name,
+        projectId: board.project.id,
+        projectName: board.project.name,
       },
     });
 

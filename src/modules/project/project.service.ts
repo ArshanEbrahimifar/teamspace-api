@@ -1,6 +1,7 @@
 import { prisma } from "../../config/database.js";
 import type { Prisma } from "../../generated/prisma/client.js";
 import { AppError } from "../../shared/errors/app-error.js";
+import { recordActivity } from "../activity/activity.service.js";
 import type {
   CreateProjectInput,
   ListWorkspaceProjectsQuery,
@@ -12,74 +13,96 @@ export const createProject = async (
   createdById: string,
   input: CreateProjectInput,
 ) => {
-  const existingProject = await prisma.project.findUnique({
-    where: {
-      workspaceId_key: {
-        workspaceId,
-        key: input.key,
-      },
-    },
-
-    select: {
-      id: true,
-    },
-  });
-
-  if (existingProject) {
-    throw new AppError(
-      "A project with this key already exists in the workspace",
-      409,
-    );
-  }
-
-  return prisma.project.create({
-    data: {
-      workspaceId,
-      createdById,
-      name: input.name,
-      key: input.key,
-
-      ...(input.description !== undefined
-        ? {
-            description: input.description,
-          }
-        : {}),
-
-      ...(input.startDate !== undefined
-        ? {
-            startDate: input.startDate,
-          }
-        : {}),
-
-      ...(input.dueDate !== undefined
-        ? {
-            dueDate: input.dueDate,
-          }
-        : {}),
-    },
-
-    select: {
-      id: true,
-      name: true,
-      key: true,
-      description: true,
-      status: true,
-      startDate: true,
-      dueDate: true,
-      createdAt: true,
-      updatedAt: true,
-
-      createdBy: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          avatarUrl: true,
+  return prisma.$transaction(async (tx) => {
+    const existingProject = await tx.project.findUnique({
+      where: {
+        workspaceId_key: {
+          workspaceId,
+          key: input.key,
         },
       },
-    },
+
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingProject) {
+      throw new AppError(
+        "A project with this key already exists in the workspace",
+        409,
+      );
+    }
+
+    const project = await tx.project.create({
+      data: {
+        workspaceId,
+        createdById,
+        name: input.name,
+        key: input.key,
+
+        ...(input.description !== undefined
+          ? {
+              description: input.description,
+            }
+          : {}),
+
+        ...(input.startDate !== undefined
+          ? {
+              startDate: input.startDate,
+            }
+          : {}),
+
+        ...(input.dueDate !== undefined
+          ? {
+              dueDate: input.dueDate,
+            }
+          : {}),
+      },
+
+      select: {
+        id: true,
+        name: true,
+        key: true,
+        description: true,
+        status: true,
+        startDate: true,
+        dueDate: true,
+        createdAt: true,
+        updatedAt: true,
+
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+
+    await recordActivity(tx, {
+      workspaceId,
+      actorId: createdById,
+      action: "PROJECT_CREATED",
+      entityType: "PROJECT",
+      entityId: project.id,
+      message: `Created project "${project.name}"`,
+
+      metadata: {
+        projectName: project.name,
+        projectKey: project.key,
+        status: project.status,
+        startDate: project.startDate?.toISOString() ?? null,
+        dueDate: project.dueDate?.toISOString() ?? null,
+      },
+    });
+
+    return project;
   });
 };
+
 export const getWorkspaceProjects = async (
   workspaceId: string,
   query: ListWorkspaceProjectsQuery,

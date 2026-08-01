@@ -89,6 +89,8 @@ import {
   reorderColumnTasksHandler,
   updateTaskHandler,
 } from "../task/task.controller.js";
+import { listWorkspaceActivitiesSchema } from "../activity/activity.schema.js";
+import { listWorkspaceActivitiesHandler } from "../activity/activity.controller.js";
 
 export const workspaceRouter = Router();
 
@@ -359,4 +361,11 @@ workspaceRouter.patch(
   validateRequest(moveTaskSchema),
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   moveTaskHandler,
+);
+workspaceRouter.get(
+  "/:workspaceId/activities",
+  authenticate,
+  validateRequest(listWorkspaceActivitiesSchema),
+  authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
+  listWorkspaceActivitiesHandler,
 );
