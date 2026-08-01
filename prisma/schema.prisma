@@ -37,6 +37,27 @@ enum TaskPriority {
   URGENT
 }
 
+enum ActivityAction {
+  WORKSPACE_CREATED
+  MEMBER_INVITED
+  PROJECT_CREATED
+  BOARD_CREATED
+  COLUMN_CREATED
+  TASK_CREATED
+  TASK_UPDATED
+  TASK_MOVED
+  TASK_DELETED
+}
+
+enum ActivityEntityType {
+  WORKSPACE
+  WORKSPACE_INVITATION
+  PROJECT
+  BOARD
+  BOARD_COLUMN
+  TASK
+}
+
 model User {
   id           String        @id @default(uuid())
   email        String        @unique
@@ -58,6 +79,7 @@ model User {
 
   tasksCreated  Task[] @relation("TaskCreator")
   tasksAssigned Task[] @relation("TaskAssignee")
+  activities ActivityLog[] @relation("ActivityActor")
 
   @@map("users")
 }
@@ -93,6 +115,7 @@ model Workspace{
   members      WorkspaceMember[]
   invitations     WorkspaceInvitation[]
   projects      Project[]
+  activities    ActivityLog[]
 
   @@index([deletedAt])
   @@map("workspaces")
@@ -235,4 +258,25 @@ model Task {
   @@index([createdById])
   @@index([dueDate])
   @@map("tasks")
+}
+
+model ActivityLog {
+  id          String             @id @default(uuid())
+  workspaceId String
+  actorId     String?
+  action      ActivityAction
+  entityType  ActivityEntityType
+  entityId    String
+  message     String
+  metadata    Json?
+  createdAt   DateTime           @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId],references: [id],onDelete: Cascade)
+
+  actor User? @relation("ActivityActor",fields: [actorId],references: [id],onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@map("activity_logs")
 }
