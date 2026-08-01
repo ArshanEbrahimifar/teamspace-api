@@ -1,6 +1,7 @@
 import { prisma } from "../../config/database.js";
 import type { Prisma } from "../../generated/prisma/client.js";
 import { AppError } from "../../shared/errors/app-error.js";
+import { recordActivity } from "../activity/activity.service.js";
 
 import type {
   CreateTaskInput,
@@ -168,6 +169,21 @@ export const createTask = async (
             avatarUrl: true,
           },
         },
+      },
+    });
+    await recordActivity(tx, {
+      workspaceId,
+      actorId: createdById,
+      action: "TASK_CREATED",
+      entityType: "TASK",
+      entityId: task.id,
+      message: `Created task "${task.title}"`,
+
+      metadata: {
+        taskTitle: task.title,
+        priority: task.priority,
+        columnId: column.id,
+        columnName: column.name,
       },
     });
 
