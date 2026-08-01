@@ -184,6 +184,7 @@ export const createTask = async (
         priority: task.priority,
         columnId: column.id,
         columnName: column.name,
+        assigneeId: task.assignee?.id ?? null,
       },
     });
 
@@ -493,9 +494,52 @@ export const updateTask = async (
   boardId: string,
   columnId: string,
   taskId: string,
+  actorId: string,
   input: UpdateTaskInput,
 ) => {
   return prisma.$transaction(async (tx) => {
+    const existingTask = await tx.task.findFirst({
+      where: {
+        id: taskId,
+        columnId,
+        deletedAt: null,
+
+        column: {
+          is: {
+            boardId,
+            deletedAt: null,
+
+            board: {
+              is: {
+                projectId,
+                deletedAt: null,
+
+                project: {
+                  is: {
+                    workspaceId,
+                    deletedAt: null,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        priority: true,
+        dueDate: true,
+        assigneeId: true,
+      },
+    });
+
+    if (!existingTask) {
+      throw new AppError("Task not found", 404);
+    }
+
     if (input.assigneeId !== undefined && input.assigneeId !== null) {
       const assigneeMembership = await tx.workspaceMember.findUnique({
         where: {
@@ -515,7 +559,7 @@ export const updateTask = async (
       }
     }
 
-    const updatedTask = await tx.task.updateMany({
+    const updateResult = await tx.task.updateMany({
       where: {
         id: taskId,
         columnId,
@@ -576,7 +620,7 @@ export const updateTask = async (
       },
     });
 
-    if (updatedTask.count !== 1) {
+    if (updateResult.count !== 1) {
       throw new AppError("Task not found", 404);
     }
 
@@ -668,6 +712,65 @@ export const updateTask = async (
       throw new AppError("Task not found", 404);
     }
 
+    const changes: Prisma.JsonObject = {};
+
+    if (existingTask.title !== task.title) {
+      changes.title = {
+        from: existingTask.title,
+        to: task.title,
+      };
+    }
+
+    if (existingTask.description !== task.description) {
+      changes.description = {
+        from: existingTask.description,
+        to: task.description,
+      };
+    }
+
+    if (existingTask.priority !== task.priority) {
+      changes.priority = {
+        from: existingTask.priority,
+        to: task.priority,
+      };
+    }
+
+    const previousDueDate = existingTask.dueDate?.toISOString() ?? null;
+
+    const nextDueDate = task.dueDate?.toISOString() ?? null;
+
+    if (previousDueDate !== nextDueDate) {
+      changes.dueDate = {
+        from: previousDueDate,
+        to: nextDueDate,
+      };
+    }
+
+    const nextAssigneeId = task.assignee?.id ?? null;
+
+    if (existingTask.assigneeId !== nextAssigneeId) {
+      changes.assigneeId = {
+        from: existingTask.assigneeId,
+        to: nextAssigneeId,
+      };
+    }
+
+    if (Object.keys(changes).length > 0) {
+      await recordActivity(tx, {
+        workspaceId,
+        actorId,
+        action: "TASK_UPDATED",
+        entityType: "TASK",
+        entityId: task.id,
+        message: `Updated task "${task.title}"`,
+
+        metadata: {
+          taskTitle: task.title,
+          changes,
+        },
+      });
+    }
+
     return task;
   });
 };
@@ -677,49 +780,117 @@ export const softDeleteTask = async (
   boardId: string,
   columnId: string,
   taskId: string,
+  actorId: string,
 ): Promise<void> => {
-  const deletedTask = await prisma.task.updateMany({
-    where: {
-      id: taskId,
-      columnId,
-      deletedAt: null,
+  await prisma.$transaction(async (tx) => {
+    const task = await tx.task.findFirst({
+      where: {
+        id: taskId,
+        columnId,
+        deletedAt: null,
 
-      column: {
-        is: {
-          boardId,
-          deletedAt: null,
+        column: {
+          is: {
+            boardId,
+            deletedAt: null,
 
-          board: {
-            is: {
-              projectId,
-              deletedAt: null,
+            board: {
+              is: {
+                projectId,
+                deletedAt: null,
 
-              project: {
-                is: {
-                  workspaceId,
-                  deletedAt: null,
+                project: {
+                  is: {
+                    workspaceId,
+                    deletedAt: null,
+                  },
                 },
               },
             },
           },
         },
       },
-    },
 
-    data: {
-      deletedAt: new Date(),
-    },
+      select: {
+        id: true,
+        title: true,
+        priority: true,
+        position: true,
+
+        column: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!task) {
+      throw new AppError("Task not found", 404);
+    }
+
+    const deletedTask = await tx.task.updateMany({
+      where: {
+        id: task.id,
+        columnId: task.column.id,
+        deletedAt: null,
+
+        column: {
+          is: {
+            boardId,
+            deletedAt: null,
+
+            board: {
+              is: {
+                projectId,
+                deletedAt: null,
+
+                project: {
+                  is: {
+                    workspaceId,
+                    deletedAt: null,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    if (deletedTask.count !== 1) {
+      throw new AppError("Task changed while deleting", 409);
+    }
+
+    await recordActivity(tx, {
+      workspaceId,
+      actorId,
+      action: "TASK_DELETED",
+      entityType: "TASK",
+      entityId: task.id,
+      message: `Deleted task "${task.title}"`,
+
+      metadata: {
+        taskTitle: task.title,
+        priority: task.priority,
+        position: task.position,
+        columnId: task.column.id,
+        columnName: task.column.name,
+      },
+    });
   });
-
-  if (deletedTask.count !== 1) {
-    throw new AppError("Task not found", 404);
-  }
 };
 export const moveTask = async (
   workspaceId: string,
   projectId: string,
   boardId: string,
   taskId: string,
+  actorId: string,
   input: MoveTaskInput,
 ) => {
   return prisma.$transaction(async (tx) => {
@@ -1046,6 +1217,35 @@ export const moveTask = async (
     if (!movedTask) {
       throw new AppError("Task not found", 404);
     }
+
+    await recordActivity(tx, {
+      workspaceId,
+      actorId,
+      action: "TASK_MOVED",
+      entityType: "TASK",
+      entityId: movedTask.id,
+      message: movedWithinSameColumn
+        ? `Reordered task "${movedTask.title}" in column "${targetColumn.name}"`
+        : `Moved task "${movedTask.title}" from "${task.column.name}" to "${targetColumn.name}"`,
+
+      metadata: {
+        taskTitle: movedTask.title,
+
+        fromColumn: {
+          id: task.column.id,
+          name: task.column.name,
+        },
+
+        toColumn: {
+          id: targetColumn.id,
+          name: targetColumn.name,
+        },
+
+        fromPosition: task.position,
+        toPosition: movedTask.position,
+        movedWithinSameColumn,
+      },
+    });
 
     return {
       movedWithinSameColumn,

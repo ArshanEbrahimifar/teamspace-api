@@ -156,7 +156,7 @@ export const getTaskHandler: RequestHandler = async (req, res) => {
   });
 };
 export const updateTaskHandler: RequestHandler = async (req, res) => {
-  if (!req.workspaceContext) {
+  if (!req.auth || !req.workspaceContext) {
     throw new AppError("Workspace not found", 404);
   }
 
@@ -171,6 +171,7 @@ export const updateTaskHandler: RequestHandler = async (req, res) => {
     params.boardId,
     params.columnId,
     params.taskId,
+    req.auth.user.id,
     body,
   );
 
@@ -215,7 +216,7 @@ export const updateTaskHandler: RequestHandler = async (req, res) => {
   });
 };
 export const deleteTaskHandler: RequestHandler = async (req, res) => {
-  if (!req.workspaceContext) {
+  if (!req.auth || !req.workspaceContext) {
     throw new AppError("Workspace not found", 404);
   }
 
@@ -229,12 +230,13 @@ export const deleteTaskHandler: RequestHandler = async (req, res) => {
     params.boardId,
     params.columnId,
     params.taskId,
+    req.auth.user.id,
   );
 
   res.status(204).send();
 };
 export const moveTaskHandler: RequestHandler = async (req, res) => {
-  if (!req.workspaceContext) {
+  if (!req.auth || !req.workspaceContext) {
     throw new AppError("Workspace not found", 404);
   }
 
@@ -248,6 +250,7 @@ export const moveTaskHandler: RequestHandler = async (req, res) => {
     params.projectId,
     params.boardId,
     params.taskId,
+    req.auth.user.id,
     body,
   );
 
