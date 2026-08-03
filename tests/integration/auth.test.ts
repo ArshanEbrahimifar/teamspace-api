@@ -13,6 +13,20 @@ const registerTestUser = async () => {
   return request(app).post("/api/v1/auth/register").send(testUserInput);
 };
 
+const loginTestUser = async () => {
+  await registerTestUser();
+  const response = await request(app).post("/api/v1/auth/login").send({
+    email: testUserInput.email,
+    password: testUserInput.password,
+  });
+  expect(response.status).toBe(200);
+
+  return response.body.data.result.tokens as {
+    accessToken: string;
+    refreshToken: string;
+  };
+};
+
 describe("POST /api/v1/auth/register", () => {
   it("should register a new user", async () => {
     const registerInput = {
@@ -135,6 +149,87 @@ describe("GET /api/v1/auth/me", () => {
     const response = await request(app)
       .get("/api/v1/auth/me")
       .set("Authorization", "Bearer invalid-access-token");
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+  });
+});
+
+describe("POST /api/v1/auth/refresh", () => {
+  it("should rotate the refresh token", async () => {
+    const oldTokens = await loginTestUser();
+
+    const response = await request(app).post("/api/v1/auth/refresh").send({
+      refreshToken: oldTokens.refreshToken,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+
+    const newTokens = response.body.data.tokens;
+
+    expect(newTokens.accessToken).toEqual(expect.any(String));
+
+    expect(newTokens.refreshToken).toEqual(expect.any(String));
+
+    expect(newTokens.refreshToken).not.toBe(oldTokens.refreshToken);
+  });
+
+  it("should reject a rotated refresh token", async () => {
+    const oldTokens = await loginTestUser();
+
+    const firstRefreshResponse = await request(app)
+      .post("/api/v1/auth/refresh")
+      .send({
+        refreshToken: oldTokens.refreshToken,
+      });
+
+    expect(firstRefreshResponse.status).toBe(200);
+
+    const reusedTokenResponse = await request(app)
+      .post("/api/v1/auth/refresh")
+      .send({
+        refreshToken: oldTokens.refreshToken,
+      });
+
+    expect(reusedTokenResponse.status).toBe(401);
+
+    expect(reusedTokenResponse.body.success).toBe(false);
+  });
+
+  it("should accept the newly rotated refresh token", async () => {
+    const oldTokens = await loginTestUser();
+
+    const firstRefreshResponse = await request(app)
+      .post("/api/v1/auth/refresh")
+      .send({
+        refreshToken: oldTokens.refreshToken,
+      });
+
+    expect(firstRefreshResponse.status).toBe(200);
+
+    const newRefreshToken: string =
+      firstRefreshResponse.body.data.tokens.refreshToken;
+
+    const secondRefreshResponse = await request(app)
+      .post("/api/v1/auth/refresh")
+      .send({
+        refreshToken: newRefreshToken,
+      });
+
+    expect(secondRefreshResponse.status).toBe(200);
+
+    expect(secondRefreshResponse.body.success).toBe(true);
+
+    expect(secondRefreshResponse.body.data.tokens.refreshToken).not.toBe(
+      newRefreshToken,
+    );
+  });
+
+  it("should reject an invalid refresh token", async () => {
+    const response = await request(app).post("/api/v1/auth/refresh").send({
+      refreshToken: "invalid-refresh-token",
+    });
 
     expect(response.status).toBe(401);
     expect(response.body.success).toBe(false);
