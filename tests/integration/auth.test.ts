@@ -235,3 +235,83 @@ describe("POST /api/v1/auth/refresh", () => {
     expect(response.body.success).toBe(false);
   });
 });
+
+describe("POST /api/v1/auth/logout", () => {
+  it("should log out an active session", async () => {
+    const tokens = await loginTestUser();
+
+    const response = await request(app).post("/api/v1/auth/logout").send({
+      refreshToken: tokens.refreshToken,
+    });
+
+    expect(response.status).toBe(204);
+    expect(response.text).toBe("");
+  });
+
+  it("should reject the refresh token after logout", async () => {
+    const tokens = await loginTestUser();
+
+    const logoutResponse = await request(app).post("/api/v1/auth/logout").send({
+      refreshToken: tokens.refreshToken,
+    });
+
+    expect(logoutResponse.status).toBe(204);
+
+    const refreshResponse = await request(app)
+      .post("/api/v1/auth/refresh")
+      .send({
+        refreshToken: tokens.refreshToken,
+      });
+
+    expect(refreshResponse.status).toBe(401);
+    expect(refreshResponse.body.success).toBe(false);
+  });
+
+  it("should reject the session access token after logout", async () => {
+    const tokens = await loginTestUser();
+
+    const beforeLogoutResponse = await request(app)
+      .get("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${tokens.accessToken}`);
+
+    expect(beforeLogoutResponse.status).toBe(200);
+
+    const logoutResponse = await request(app).post("/api/v1/auth/logout").send({
+      refreshToken: tokens.refreshToken,
+    });
+
+    expect(logoutResponse.status).toBe(204);
+
+    const afterLogoutResponse = await request(app)
+      .get("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${tokens.accessToken}`);
+
+    expect(afterLogoutResponse.status).toBe(401);
+
+    expect(afterLogoutResponse.body.success).toBe(false);
+  });
+
+  it("should handle an invalid refresh token idempotently", async () => {
+    const response = await request(app).post("/api/v1/auth/logout").send({
+      refreshToken: "invalid-refresh-token",
+    });
+
+    expect(response.status).toBe(204);
+    expect(response.text).toBe("");
+  });
+
+  it("should handle repeated logout requests idempotently", async () => {
+    const tokens = await loginTestUser();
+
+    const firstResponse = await request(app).post("/api/v1/auth/logout").send({
+      refreshToken: tokens.refreshToken,
+    });
+
+    const secondResponse = await request(app).post("/api/v1/auth/logout").send({
+      refreshToken: tokens.refreshToken,
+    });
+
+    expect(firstResponse.status).toBe(204);
+    expect(secondResponse.status).toBe(204);
+  });
+});
