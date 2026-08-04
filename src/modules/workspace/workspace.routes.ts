@@ -128,6 +128,32 @@ workspaceRouter.delete(
   removeWorkspaceMemberHandler,
 );
 
+/**
+ * @openapi
+ * /api/v1/workspaces/{workspaceId}:
+ *   get:
+ *     tags:
+ *       - Workspaces
+ *     summary: Get a workspace by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Workspace returned successfully
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: User is not a workspace member
+ *       404:
+ *         description: Workspace not found
+ */
 workspaceRouter.get(
   "/:workspaceId",
   authenticate,
@@ -136,6 +162,35 @@ workspaceRouter.get(
   getWorkspaceHandler,
 );
 
+/**
+ * @openapi
+ * /api/v1/workspaces:
+ *   post:
+ *     tags:
+ *       - Workspaces
+ *     summary: Create a new workspace
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Development Team
+ *     responses:
+ *       201:
+ *         description: Workspace created successfully
+ *       400:
+ *         description: Invalid request data
+ *       401:
+ *         description: Authentication required
+ */
 workspaceRouter.post(
   "/",
   authenticate,
@@ -143,6 +198,44 @@ workspaceRouter.post(
   createWorkspaceHandler,
 );
 
+/**
+ * @openapi
+ * /api/v1/workspaces/{workspaceId}:
+ *   patch:
+ *     tags:
+ *       - Workspaces
+ *     summary: Update a workspace
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Updated Workspace
+ *     responses:
+ *       200:
+ *         description: Workspace updated successfully
+ *       400:
+ *         description: Invalid request data
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient workspace permissions
+ *       404:
+ *         description: Workspace not found
+ */
 workspaceRouter.patch(
   "/:workspaceId",
   authenticate,
@@ -164,6 +257,55 @@ workspaceRouter.get(
   authorizeWorkspaceRoles("OWNER", "ADMIN"),
   listWorkspaceInvitationsHandler,
 );
+
+/**
+ * @openapi
+ * /api/v1/workspaces/{workspaceId}/invitations:
+ *   post:
+ *     tags:
+ *       - Invitations
+ *     summary: Invite a user to a workspace
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - role
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: member@example.com
+ *               role:
+ *                 type: string
+ *                 enum:
+ *                   - ADMIN
+ *                   - MEMBER
+ *                 example: MEMBER
+ *     responses:
+ *       201:
+ *         description: Invitation created successfully
+ *       400:
+ *         description: Invalid request data
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient workspace permissions
+ *       409:
+ *         description: Invitation or membership already exists
+ */
 workspaceRouter.post(
   "/:workspaceId/invitations",
   authenticate,
@@ -194,6 +336,53 @@ workspaceRouter.get(
   listWorkspaceProjectsHandler,
 );
 
+/**
+ * @openapi
+ * /api/v1/workspaces/{workspaceId}/projects:
+ *   post:
+ *     tags:
+ *       - Projects
+ *     summary: Create a project
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - key
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Teamspace API
+ *               key:
+ *                 type: string
+ *                 example: TSA
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *     responses:
+ *       201:
+ *         description: Project created successfully
+ *       400:
+ *         description: Invalid request data
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient workspace permissions
+ *       409:
+ *         description: Project key already exists
+ */
 workspaceRouter.post(
   "/:workspaceId/projects",
   authenticate,
@@ -232,6 +421,56 @@ workspaceRouter.get(
   listProjectBoardsHandler,
 );
 
+/**
+ * @openapi
+ * /api/v1/workspaces/{workspaceId}/projects/{projectId}/boards:
+ *   post:
+ *     tags:
+ *       - Boards
+ *     summary: Create a board in a project
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Development Board
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *                 example: Main board for development tasks
+ *     responses:
+ *       201:
+ *         description: Board created successfully
+ *       400:
+ *         description: Invalid request data
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient workspace permissions
+ *       404:
+ *         description: Workspace or project not found
+ */
 workspaceRouter.post(
   "/:workspaceId/projects/:projectId/boards",
   authenticate,
@@ -317,6 +556,67 @@ workspaceRouter.get(
   listColumnTasksHandler,
 );
 
+/**
+ * @openapi
+ * /api/v1/workspaces/{workspaceId}/projects/{projectId}/boards/{boardId}/columns/{columnId}/tasks:
+ *   post:
+ *     tags:
+ *       - Tasks
+ *     summary: Create a task in a board column
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: path
+ *         name: boardId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: path
+ *         name: columnId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: Add Swagger documentation
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *     responses:
+ *       201:
+ *         description: Task created successfully
+ *       400:
+ *         description: Invalid request data
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient workspace permissions
+ *       404:
+ *         description: Project, board, or column not found
+ */
 workspaceRouter.post(
   "/:workspaceId/projects/:projectId/boards/:boardId/columns/:columnId/tasks",
   authenticate,
@@ -355,6 +655,69 @@ workspaceRouter.delete(
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   deleteTaskHandler,
 );
+/**
+ * @openapi
+ * /api/v1/workspaces/{workspaceId}/projects/{projectId}/boards/{boardId}/tasks/{taskId}/move:
+ *   patch:
+ *     tags:
+ *       - Tasks
+ *     summary: Move a task to another position or column
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: path
+ *         name: boardId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - targetColumnId
+ *               - targetPosition
+ *             properties:
+ *               targetColumnId:
+ *                 type: string
+ *                 format: uuid
+ *               targetPosition:
+ *                 type: integer
+ *                 minimum: 0
+ *                 example: 0
+ *     responses:
+ *       200:
+ *         description: Task moved successfully
+ *       400:
+ *         description: Invalid move request
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Insufficient workspace permissions
+ *       404:
+ *         description: Task or target column not found
+ */
 workspaceRouter.patch(
   "/:workspaceId/projects/:projectId/boards/:boardId/tasks/:taskId/move",
   authenticate,
@@ -362,6 +725,87 @@ workspaceRouter.patch(
   authorizeWorkspaceRoles("OWNER", "ADMIN", "MEMBER"),
   moveTaskHandler,
 );
+
+/**
+ * @openapi
+ * /api/v1/workspaces/{workspaceId}/activities:
+ *   get:
+ *     tags:
+ *       - Activities
+ *     summary: Get workspace activity logs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - WORKSPACE_CREATED
+ *             - MEMBER_INVITED
+ *             - PROJECT_CREATED
+ *             - BOARD_CREATED
+ *             - COLUMN_CREATED
+ *             - TASK_CREATED
+ *             - TASK_UPDATED
+ *             - TASK_MOVED
+ *             - TASK_DELETED
+ *       - in: query
+ *         name: entityType
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - WORKSPACE
+ *             - WORKSPACE_INVITATION
+ *             - PROJECT
+ *             - BOARD
+ *             - BOARD_COLUMN
+ *             - TASK
+ *       - in: query
+ *         name: entityId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: query
+ *         name: actorId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Activity logs returned successfully
+ *       400:
+ *         description: Invalid query parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ErrorResponse"
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: User is not a workspace member
+ *       404:
+ *         description: Workspace not found
+ */
 workspaceRouter.get(
   "/:workspaceId/activities",
   authenticate,
