@@ -165,6 +165,18 @@ describe("Task move and reorder", () => {
     expect(movedTask.columnId).toBe(fixture.targetColumn.id);
 
     expect(movedTask.position).toBe(0);
+
+    const activity = await prisma.activityLog.findFirst({
+      where: {
+        workspaceId: fixture.workspace.id,
+        actorId: fixture.user.id,
+        action: "TASK_MOVED",
+        entityType: "TASK",
+        entityId: task.id,
+      },
+    });
+
+    expect(activity).not.toBeNull();
   });
 
   it("should reorder all tasks in a column", async () => {
@@ -213,5 +225,42 @@ describe("Task move and reorder", () => {
     });
 
     expect(tasks.map((task) => task.id)).toEqual(reorderedTaskIds);
+  });
+
+  it("should soft delete a task", async () => {
+    const fixture = await createTaskFixture();
+
+    const task = await fixture.createTask(
+      fixture.sourceColumn.id,
+      "Delete this task",
+    );
+
+    const response = await request(app)
+      .delete(
+        `/api/v1/workspaces/${fixture.workspace.id}/projects/${fixture.project.id}/boards/${fixture.board.id}/columns/${fixture.sourceColumn.id}/tasks/${task.id}`,
+      )
+      .set("Authorization", `Bearer ${fixture.accessToken}`);
+
+    expect(response.status).toBe(204);
+
+    const deletedTask = await prisma.task.findUniqueOrThrow({
+      where: {
+        id: task.id,
+      },
+    });
+
+    expect(deletedTask.deletedAt).not.toBeNull();
+
+    const activity = await prisma.activityLog.findFirst({
+      where: {
+        workspaceId: fixture.workspace.id,
+        actorId: fixture.user.id,
+        action: "TASK_DELETED",
+        entityType: "TASK",
+        entityId: task.id,
+      },
+    });
+
+    expect(activity).not.toBeNull();
   });
 });
