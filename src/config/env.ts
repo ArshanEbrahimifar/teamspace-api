@@ -1,32 +1,62 @@
 import "dotenv/config";
 import { z } from "zod";
 
-const envSchema = z.object({
-  NODE_ENV: z
-    .enum(["development", "test", "production"])
-    .default("development"),
-  PORT: z.coerce.number().int().positive().default(5000),
-  DATABASE_URL: z.string().url(),
-  JWT_ACCESS_SECRET: z
-    .string()
-    .min(64, "JWT_ACCESS_SECRET must be at least 64 characters"),
-  JWT_ACCESS_EXPIRES_IN: z
-    .string()
-    .regex(/^\d+[smhd]$/, "JWT_ACCESS_EXPIRES_IN must look like 15m, 1h, or 7d")
-    .default("15m"),
+const envSchema = z
+  .object({
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
+    PORT: z.coerce.number().int().positive().default(5000),
+    DATABASE_URL: z.string().url(),
+    JWT_ACCESS_SECRET: z
+      .string()
+      .min(64, "JWT_ACCESS_SECRET must be at least 64 characters"),
+    JWT_ACCESS_EXPIRES_IN: z
+      .string()
+      .regex(
+        /^\d+[smhd]$/,
+        "JWT_ACCESS_EXPIRES_IN must look like 15m, 1h, or 7d",
+      )
+      .default("15m"),
 
-  JWT_ISSUER: z.string().min(1).default("teamspace-api"),
+    JWT_ISSUER: z.string().min(1).default("teamspace-api"),
 
-  JWT_AUDIENCE: z.string().min(1).default("teamspace-client"),
+    JWT_AUDIENCE: z.string().min(1).default("teamspace-client"),
 
-  REFRESH_TOKEN_EXPIRES_IN_DAYS: z.coerce.number().int().positive().default(7),
+    REFRESH_TOKEN_EXPIRES_IN_DAYS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(7),
 
-  WORKSPACE_INVITATION_EXPIRES_IN_DAYS: z.coerce
-    .number()
-    .int()
-    .positive()
-    .default(7),
-});
+    WORKSPACE_INVITATION_EXPIRES_IN_DAYS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(7),
+    CORS_ORIGINS: z.string().min(1),
+  })
+  .superRefine((env, ctx) => {
+    if (env.NODE_ENV !== "production") {
+      return;
+    }
+
+    if (env.JWT_ACCESS_SECRET.toLowerCase().includes("change-me")) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["JWT_ACCESS_SECRET"],
+        message: "JWT_ACCESS_SECRET must use a real production secret",
+      });
+    }
+
+    if (env.CORS_ORIGINS.includes("localhost")) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["CORS_ORIGINS"],
+        message: "Production CORS origins cannot use localhost",
+      });
+    }
+  });
 
 const parsedEnv = envSchema.safeParse(process.env);
 

@@ -17,6 +17,7 @@ import {
   revokeSession,
 } from "./auth.controller.js";
 import { authenticate } from "../../middleware/authenticate.middleware.js";
+import { authRateLimiter } from "../../config/rate-limit.js";
 
 export const authRouter = Router();
 
@@ -66,7 +67,12 @@ export const authRouter = Router();
  *               $ref: "#/components/schemas/ErrorResponse"
  */
 
-authRouter.post("/register", validateRequest(registerSchema), register);
+authRouter.post(
+  "/register",
+  authRateLimiter,
+  validateRequest(registerSchema),
+  register,
+);
 
 /**
  * @openapi
@@ -125,7 +131,7 @@ authRouter.post("/register", validateRequest(registerSchema), register);
  *               $ref: "#/components/schemas/ErrorResponse"
  */
 
-authRouter.post("/login", validateRequest(loginSchema), login);
+authRouter.post("/login", authRateLimiter, validateRequest(loginSchema), login);
 
 /**
  * @openapi
