@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_DB: teamspace_test
+
+        ports:
+          - 5432:5432
+
+        options: >-
+          --health-cmd "pg_isready -U teamspace -d teamspace_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      PORT: "5000"
+
+      DATABASE_URL: postgresql://ci_user:ci_test_password@localhost:5432/teamspace_test
+
+      JWT_ACCESS_SECRET: ci-test-secret-that-is-longer-than-thirty-two-characters
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_ISSUER: teamspace-api
+      JWT_AUDIENCE: teamspace-client
+
+      REFRESH_TOKEN_EXPIRES_IN_DAYS: "7"
+      WORKSPACE_INVITATION_EXPIRES_IN_DAYS: "7"
+
+      CORS_ORIGINS: http://localhost:5173
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run type check
+        run: npm run type-check
+
+      - name: Run integration tests
+        run: npm run test:integration
+
+      - name: Build project
+        run: npm run build
