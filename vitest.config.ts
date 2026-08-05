@@ -1,10 +1,13 @@
 import { config } from "dotenv";
+import { existsSync } from "node:fs";
 import { defineConfig } from "vitest/config";
 
-config({
-  path: ".env.test",
-  override: true,
-});
+if (existsSync(".env.test")) {
+  config({
+    path: ".env.test",
+    override: true,
+  });
+}
 
 export default defineConfig({
   test: {

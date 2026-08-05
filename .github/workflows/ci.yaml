@@ -37,15 +37,15 @@ jobs:
 
       DATABASE_URL: postgresql://ci_user:ci_test_password@localhost:5432/teamspace_test
 
-      JWT_ACCESS_SECRET: ci-test-secret-that-is-longer-than-thirty-two-characters
-      JWT_ACCESS_EXPIRES_IN: 15m
-      JWT_ISSUER: teamspace-api
-      JWT_AUDIENCE: teamspace-client
+      JWT_ACCESS_SECRET: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      JWT_ACCESS_EXPIRES_IN: "15m"
+      JWT_ISSUER: "teamspace-api"
+      JWT_AUDIENCE: "teamspace-client"
 
       REFRESH_TOKEN_EXPIRES_IN_DAYS: "7"
       WORKSPACE_INVITATION_EXPIRES_IN_DAYS: "7"
 
-      CORS_ORIGINS: http://localhost:5173
+      CORS_ORIGINS: "http://localhost:5173"
 
     steps:
       - name: Checkout repository
